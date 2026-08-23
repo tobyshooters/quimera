@@ -8,10 +8,113 @@ import rehypeStringify from "rehype-stringify";
 import { visit } from "unist-util-visit";
 import { readdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { citations, loadBib, defaultFormatCitation } from "./citations.ts";
 
 const TOOL_DIR = new URL(".", import.meta.url).pathname;
+
+// CSS page size name → [width, height] in mm
+const PAGE_SIZES: Record<string, [number, number]> = {
+  a3: [297, 420], a4: [210, 297], a5: [148, 210], a6: [105, 148],
+  letter: [215.9, 279.4], legal: [215.9, 355.6], tabloid: [279.4, 431.8],
+};
+
+// Parse a CSS length value (cm, mm, in, pt, px) to mm.
+function cssLenToMm(val: string): number | null {
+  const m = val.trim().match(/^([\d.]+)(cm|mm|in|pt|px)$/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  switch (m[2]) {
+    case "cm": return n * 10;
+    case "mm": return n;
+    case "in": return n * 25.4;
+    case "pt": return n * 25.4 / 72;
+    case "px": return n * 25.4 / 96;
+  }
+  return null;
+}
+
+// Parse margin shorthand (1–4 values) → { top, right, bottom, left } in mm.
+function parseMarginShorthand(val: string): { right: number; left: number } | null {
+  const parts = val.trim().split(/\s+/);
+  const mm = parts.map(cssLenToMm);
+  if (mm.some((v) => v === null)) return null;
+  const [top, right, bottom, left] = mm as number[];
+  // CSS shorthand: 1=all, 2=top/bottom & right/left, 3=top & right/left & bottom, 4=top right bottom left
+  switch (parts.length) {
+    case 1: return { right: top, left: top };
+    case 2: return { right: right!, left: right! };
+    case 3: return { right: right!, left: right! };
+    case 4: return { right: right!, left: left! };
+  }
+  return null;
+}
+
+// Compute content column width in mm from style.css @page rules.
+// Returns null if it can't be determined.
+function computeColWidthMm(css: string): number | null {
+  // Strip comments
+  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  // Extract the base @page block (not :left/:right)
+  const baseMatch = stripped.match(/@page\s*\{([^}]*)\}/);
+  const baseBlock = baseMatch ? baseMatch[1] : "";
+
+  // Extract @page :right block (recto; most books have inner on left)
+  const rightMatch = stripped.match(/@page\s*:right\s*\{([^}]*)\}/);
+  const rightBlock = rightMatch ? rightMatch[1] : "";
+
+  // Determine page width from size:
+  let pageWidthMm: number | null = null;
+  const sizeMatch = baseBlock.match(/size\s*:\s*([^;]+)/);
+  if (sizeMatch) {
+    const sizeParts = sizeMatch[1].trim().toLowerCase().split(/\s+/);
+    const named = PAGE_SIZES[sizeParts[0]];
+    if (named) {
+      pageWidthMm = named[0]; // portrait width
+    } else {
+      // Explicit dimensions e.g. "200mm 280mm"
+      const w = cssLenToMm(sizeParts[0]);
+      if (w !== null) pageWidthMm = w;
+    }
+  }
+  if (pageWidthMm === null) return null;
+
+  // Determine margins: prefer @page :right, fall back to base @page
+  const activeBlock = rightBlock || baseBlock;
+
+  // Try margin shorthand first
+  const marginMatch = activeBlock.match(/(?:^|[;\s])margin\s*:\s*([^;]+)/);
+  if (marginMatch) {
+    const sides = parseMarginShorthand(marginMatch[1]);
+    if (sides) return pageWidthMm - sides.left - sides.right;
+  }
+
+  // Try individual sides
+  const mlMatch = activeBlock.match(/margin-left\s*:\s*([^;]+)/);
+  const mrMatch = activeBlock.match(/margin-right\s*:\s*([^;]+)/);
+  const ml = mlMatch ? cssLenToMm(mlMatch[1].trim()) : null;
+  const mr = mrMatch ? cssLenToMm(mrMatch[1].trim()) : null;
+  if (ml !== null && mr !== null) return pageWidthMm - ml! - mr!;
+
+  return null;
+}
+
+// Bundle pretext-client.ts and inject COL_WIDTH, returning an inline <script>.
+async function pretextScript(colWidthPx: number): Promise<string> {
+  const entry = resolve(join(TOOL_DIR, "pretext-client.ts"));
+  const result = await Bun.build({
+    entrypoints: [entry],
+    target: "browser",
+    minify: true,
+    define: { COL_WIDTH: colWidthPx.toFixed(2) },
+  });
+  if (!result.success) {
+    throw new AggregateError(result.logs, "pretext-client bundle failed");
+  }
+  const code = await result.outputs[0]!.text();
+  return `<script>${code}<\/script>`;
+}
 
 // Turn container/leaf/text directives into HTML elements per the registry.
 // `:margin[hi]` → `<aside class="margin">hi</aside>`.
@@ -41,7 +144,7 @@ async function loadConfig(projectDir) {
   for (const name of ["something.config.ts", "something.config.js"]) {
     const path = join(projectDir, name);
     if (existsSync(path)) {
-      const mod = await import(path);
+      const mod = await import(`${path}?t=${Date.now()}`);
       return mod.default || {};
     }
   }
@@ -82,5 +185,25 @@ export async function buildHtml(projectDir) {
 
   const body = String(await proc.process(md));
   const shell = await readFile(join(TOOL_DIR, "template.html"), "utf8");
-  return shell.replace("<!--BODY-->", body);
+  let html = shell.replace("<!--BODY-->", body);
+
+  if (config.pretext) {
+    // Compute column width from style.css; fall back to A5 with default margins (93 mm).
+    const styleCssPath = join(projectDir, "style.css");
+    let colWidthMm: number | null = null;
+    if (existsSync(styleCssPath)) {
+      const userCss = await readFile(styleCssPath, "utf8");
+      colWidthMm = computeColWidthMm(userCss);
+    }
+    if (colWidthMm === null && config.pretext !== true) {
+      colWidthMm = (config.pretext as { colWidthMm?: number }).colWidthMm ?? null;
+    }
+    if (colWidthMm === null) colWidthMm = 93; // A5 with default margins
+    const colWidthPx = colWidthMm * (96 / 25.4);
+    html = html.replace("<!--PRETEXT-->", await pretextScript(colWidthPx));
+  } else {
+    html = html.replace("<!--PRETEXT-->", "");
+  }
+
+  return html;
 }

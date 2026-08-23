@@ -30,4 +30,8 @@ export default {
   // remarkPlugins: [],
   // rehypePlugins: [],
   // formatCitation: (entry, locator, mode) => "...",
+
+  // Column width is auto-detected from @page CSS; override if needed:
+  pretext: true,
+  // pretext: { colWidthMm: 93 }
 };
