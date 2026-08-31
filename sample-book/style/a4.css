@@ -1,0 +1,18 @@
+/* A4 variant: reuse every class rule from the A5 base, override only
+   page geometry and bump the body size for the larger page. */
+
+@import "default.css";
+
+:root { --font-size: 11pt; }
+
+@page {
+  size: A4;
+  margin: 2.5cm 4.5cm 2cm 2cm;
+  @bottom-center { content: counter(page); }
+}
+
+@page :left  { margin-left: 4.5cm; margin-right: 2cm;   }  /* verso */
+@page :right { margin-left: 2cm;   margin-right: 4.5cm; }  /* recto */
+
+/* Match the preview phantom slot to the A4 page. */
+.pagedjs_pages { --preview-page-width: 210mm; }

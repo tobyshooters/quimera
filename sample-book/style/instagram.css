@@ -1,0 +1,46 @@
+/* Square, large-type layout for an Instagram carousel export.
+   A radically different `variant` — swaps geometry and typography,
+   reuses the same content and class names. */
+
+:root {
+  --font-body: Georgia, "Iowan Old Style", serif;
+  --font-size: 22pt;
+}
+
+@page {
+  size: 108mm 108mm;   /* square */
+  margin: 12mm;
+  @bottom-center { content: none; }
+}
+
+/* Symmetric margins: no verso/recto distinction on a carousel. */
+@page :left, @page :right { margin: 12mm; }
+
+/* Match the preview phantom slot to the square page. */
+.pagedjs_pages { --preview-page-width: 108mm; }
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--font-size);
+  line-height: 1.35;
+  margin: 0;
+}
+
+p { text-align: justify; hyphens: auto; margin: 0 0 0.6em; }
+
+/* Each h1 opens a fresh slide, centered. */
+h1 {
+  break-before: page;
+  margin: 0 0 0.4em;
+  font-size: 1.4em;
+}
+
+h2 { margin-top: 0.8em; font-size: 1.15em; }
+
+/* No outer-margin sidenotes on a square slide. */
+.margin { display: none; }
+
+.pagebreak { break-after: page; }
+
+figure { break-inside: avoid; margin: 0.6em 0; text-align: center; }
+figure img { max-width: 100%; }
