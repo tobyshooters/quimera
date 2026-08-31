@@ -79,6 +79,67 @@ function variantPicker(names, current) {
 `;
 }
 
+// Top + left rulers ticked in the document's centimetres (1cm = 96/2.54
+// CSS px, the unit paged.js lays out in). Fixed to the viewport but
+// scroll-synced, so they read as a measuring tape over the canvas, with
+// 0 at its top-left. Real-size at 100% browser zoom on a standard display.
+// Appended to <html> so paged.js — which paginates <body> — leaves it be.
+function rulerChrome() {
+  return `
+<script>
+  (() => {
+    const CM = 96 / 2.54, T = 22;
+    const mk = (horiz) => {
+      const c = document.createElement("canvas");
+      c.style.cssText = "position:fixed;z-index:9998;left:0;top:0;" +
+        (horiz ? "height:" + T + "px;" : "width:" + T + "px;");
+      document.documentElement.appendChild(c);
+      return c;
+    };
+    const bars = [[mk(true), true], [mk(false), false]];
+    const draw = () => {
+      const dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
+      for (const [c, horiz] of bars) {
+        const len = horiz ? W : H;
+        c.style.width  = (horiz ? W : T) + "px";
+        c.style.height = (horiz ? T : H) + "px";
+        c.width  = (horiz ? W : T) * dpr;
+        c.height = (horiz ? T : H) * dpr;
+        const g = c.getContext("2d");
+        g.scale(dpr, dpr);
+        g.fillStyle = "#fafafa";
+        g.fillRect(0, 0, horiz ? W : T, horiz ? T : H);
+        g.strokeStyle = "#aaa";
+        g.fillStyle = "#333";
+        g.font = "9px sans-serif";
+        g.textBaseline = "top";
+        g.beginPath();
+        const scroll = horiz ? scrollX : scrollY;
+        for (let cm = Math.floor(scroll / CM); cm <= (scroll + len) / CM; cm++) {
+          for (let m = 0; m < 10; m++) {
+            const p = Math.round((cm + m / 10) * CM - scroll) + 0.5;
+            const h = m === 0 ? T : m === 5 ? T * 0.5 : T * 0.3;
+            if (horiz) { g.moveTo(p, T); g.lineTo(p, T - h); }
+            else       { g.moveTo(T, p); g.lineTo(T - h, p); }
+          }
+          const p = Math.round(cm * CM - scroll) + 2;
+          if (horiz) { g.fillText(cm, p, 1); }
+          else       { g.fillText(cm, 1, p); }
+        }
+        g.stroke();
+      }
+    };
+    let raf = 0;
+    const sched = () => { raf = raf || requestAnimationFrame(() => { raf = 0; draw(); }); };
+    addEventListener("scroll", sched, { passive: true });
+    addEventListener("resize", sched);
+    addEventListener("load", draw);
+    draw();
+  })();
+<\/script>
+`;
+}
+
 function debounce(fn, ms) {
   let t;
   return (...args) => {
@@ -136,7 +197,7 @@ export async function preview(projectDir) {
         const html = await buildHtml(projectDir, variant);
         const names = await variantNames(projectDir);
         const current = variant && names.includes(variant) ? variant : names[0];
-        const chrome = variantPicker(names, current) + RELOAD_SCRIPT;
+        const chrome = rulerChrome() + variantPicker(names, current) + RELOAD_SCRIPT;
         const injected = html.replace("</body>", chrome + "</body>");
         return new Response(injected, {
           headers: { "Content-Type": "text/html; charset=utf-8" },
