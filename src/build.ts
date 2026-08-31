@@ -13,6 +13,9 @@ import { citations, loadBib, defaultFormatCitation } from "./citations.ts";
 
 const TOOL_DIR = new URL(".", import.meta.url).pathname;
 
+// Stylesheets and config.ts live under <project>/style/.
+export const STYLE_DIR = "style";
+
 // CSS page size name → [width, height] in mm
 const PAGE_SIZES: Record<string, [number, number]> = {
   a3: [297, 420], a4: [210, 297], a5: [148, 210], a6: [105, 148],
@@ -141,8 +144,8 @@ function directivesToHast(registry) {
 }
 
 async function loadConfig(projectDir) {
-  for (const name of ["something.config.ts", "something.config.js"]) {
-    const path = join(projectDir, name);
+  for (const name of ["config.ts", "config.js"]) {
+    const path = join(projectDir, STYLE_DIR, name);
     if (existsSync(path)) {
       const mod = await import(`${path}?t=${Date.now()}`);
       return mod.default || {};
@@ -151,8 +154,25 @@ async function loadConfig(projectDir) {
   return {};
 }
 
-export async function buildHtml(projectDir) {
+// Names of the configured variants, for the preview picker. Empty if none.
+export async function variantNames(projectDir) {
   const config = await loadConfig(projectDir);
+  return config.variants ? Object.keys(config.variants) : [];
+}
+
+// Merge the chosen variant over the shared base; `variants` never reaches
+// the pipeline. An absent or unknown variant resolves to the first one.
+function resolveConfig(raw, variant) {
+  const { variants, ...base } = raw;
+  if (!variants) {
+    return base;
+  }
+  const name = variant && variants[variant] ? variant : Object.keys(variants)[0];
+  return { ...base, ...variants[name] };
+}
+
+export async function buildHtml(projectDir, variant) {
+  const config = resolveConfig(await loadConfig(projectDir), variant);
   const bib = await loadBib(join(projectDir, "refs.bib"));
   const directives = config.directives || {};
   const formatCitation = config.formatCitation || defaultFormatCitation;
@@ -183,13 +203,19 @@ export async function buildHtml(projectDir) {
   }
   proc = proc.use(rehypeStringify);
 
+  // The active stylesheet, named in config (`css`) and overridable per
+  // variant. Drives both the <link> and the pretext column-width read.
+  const styleSheet = config.css || "default.css";
+
   const body = String(await proc.process(md));
   const shell = await readFile(join(TOOL_DIR, "template.html"), "utf8");
-  let html = shell.replace("<!--BODY-->", body);
+  let html = shell
+    .replace("<!--BODY-->", body)
+    .replace('href="style.css"', `href="${STYLE_DIR}/${styleSheet}"`);
 
   if (config.pretext) {
-    // Compute column width from style.css; fall back to A5 with default margins (93 mm).
-    const styleCssPath = join(projectDir, "style.css");
+    // Compute column width from the active stylesheet; fall back to A5 with default margins (93 mm).
+    const styleCssPath = join(projectDir, STYLE_DIR, styleSheet);
     let colWidthMm: number | null = null;
     if (existsSync(styleCssPath)) {
       const userCss = await readFile(styleCssPath, "utf8");

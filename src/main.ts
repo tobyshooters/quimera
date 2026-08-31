@@ -18,20 +18,20 @@ async function init(projectDir) {
 }
 
 function usage() {
-  console.error("usage: something <preview|export|init> <dir>");
+  console.error("usage: something <preview|export|init> <dir> [variant]");
   process.exit(1);
 }
 
-const [cmd, dir] = process.argv.slice(2);
+const [cmd, dir, variant] = process.argv.slice(2);
 if (!cmd || !dir) {
   usage();
 }
 const abs = resolve(dir);
 
 switch (cmd) {
-  case "preview": await preview(abs);   break;
-  case "export":  await exportPdf(abs); break;
-  case "init":    await init(abs);      break;
+  case "preview": await preview(abs);            break;
+  case "export":  await exportPdf(abs, variant); break;
+  case "init":    await init(abs);               break;
   default:
     usage();
 }

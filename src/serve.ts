@@ -1,4 +1,4 @@
-import { buildHtml } from "./build.ts";
+import { buildHtml, variantNames } from "./build.ts";
 import { watch } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -29,6 +29,55 @@ const RELOAD_SCRIPT = `
   ws.onmessage = (e) => { if (e.data === "reload") location.reload(); };
 </script>
 `;
+
+// Fixed-corner variant dropdown. Changing it reloads with ?variant=<name>;
+// the choice rides the query string through live-reloads. Injected as a
+// script that appends to <html>, outside <body>, so paged.js — which
+// paginates the body flow — doesn't sweep the <select> into a page.
+function variantPicker(names, current) {
+  if (names.length === 0) {
+    return "";
+  }
+  const opts = names.map((n) =>
+    `<option value="${n}"${n === current ? " selected" : ""}>${n}</option>`
+  ).join("");
+  return `
+<script>
+  (() => {
+    const KEY = "variant-scroll";
+    const s = document.createElement("select");
+    s.id = "variant-picker";
+    s.innerHTML = ${JSON.stringify(opts)};
+    s.style.cssText =
+      "position:fixed;top:12px;right:12px;z-index:9999;" +
+      "padding:4px 8px;font:13px sans-serif";
+    s.onchange = () => {
+      // Stash scroll so the swap lands on the same passage.
+      sessionStorage.setItem(KEY, String(scrollY));
+      const u = new URL(location.href);
+      u.searchParams.set("variant", s.value);
+      location.href = u.toString();
+    };
+    document.documentElement.appendChild(s);
+
+    // paged.js repaginates asynchronously, so the page grows tall enough
+    // to scroll only some frames after load. Retry scrollTo until we
+    // reach the stashed offset (or give up after ~2s).
+    const y = sessionStorage.getItem(KEY);
+    if (y !== null) {
+      sessionStorage.removeItem(KEY);
+      const target = +y;
+      let tries = 0;
+      const tick = () => {
+        scrollTo(0, target);
+        if (scrollY < target - 1 && tries++ < 120) requestAnimationFrame(tick);
+      };
+      addEventListener("load", () => requestAnimationFrame(tick));
+    }
+  })();
+<\/script>
+`;
+}
 
 function debounce(fn, ms) {
   let t;
@@ -83,8 +132,12 @@ export async function preview(projectDir) {
         return new Response("upgrade failed", { status: 400 });
       }
       if (url.pathname === "/" || url.pathname === "/index.html") {
-        const html = await buildHtml(projectDir);
-        const injected = html.replace("</body>", RELOAD_SCRIPT + "</body>");
+        const variant = url.searchParams.get("variant") || undefined;
+        const html = await buildHtml(projectDir, variant);
+        const names = await variantNames(projectDir);
+        const current = variant && names.includes(variant) ? variant : names[0];
+        const chrome = variantPicker(names, current) + RELOAD_SCRIPT;
+        const injected = html.replace("</body>", chrome + "</body>");
         return new Response(injected, {
           headers: { "Content-Type": "text/html; charset=utf-8" },
         });
@@ -96,7 +149,7 @@ export async function preview(projectDir) {
       if (fromProject) {
         return fromProject;
       }
-      if (url.pathname === "/style.css") {
+      if (url.pathname === "/style/default.css") {
         const fromTool = await serveFile(join(TOOL_DIR, "template.css"));
         if (fromTool) {
           return fromTool;

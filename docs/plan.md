@@ -57,6 +57,14 @@ export default {
 
   // Override the baseline (author, year, p. N) citation string.
   formatCitation: (entry, locator, mode) => `${entry.author} (${entry.year})`,
+
+  // Named versions, each shallow-merged over everything above. Preview
+  // shows a dropdown to swap between them; the first is the default and
+  // what `export` builds. Omit for a single config.
+  variants: {
+    print: {},
+    draft: { pretext: false },
+  },
 };
 ```
 
@@ -77,6 +85,7 @@ src/
   citations.ts   # .bib parser + citations remark plugin
   serve.ts       # HTTP server + fs.watch + WebSocket live-reload
   export.ts      # HTML → PDF via pagedjs-cli
+  pretext-client.ts # in-browser optimal paragraph justification
   template.html  # HTML shell (loads paged.js + style.css)
   template.css   # baseline stylesheet, copied into empty projects
 sample-book/     # what `init` copies
@@ -166,6 +175,49 @@ paged.js `Handler` in `template.html` whose `afterPageLayout` inspects
 each finished page and sets `float` + outer offset on `.margin`
 elements. Handler registration happens before `paged.polyfill.js`
 loads, via `window.PagedConfig.before`.
+
+### Optimal justification (`pretext-client.ts`)
+
+Browsers justify greedily, line by line; the result rivers and gaps.
+Opt in with `pretext: true` in config and each single-paragraph `<p>`
+gets TeX-style optimal breaks instead: a Knuth–Plass-flavoured DP over
+word widths that minimizes total line badness (stretch cubed, plus
+penalties for rivers and over-tight lines). The paragraph is rewritten
+into one `block` span per line with an explicit `word-spacing`.
+
+The client script needs the content column width, which lives in CSS,
+not the DOM at run time. `build.ts` reads it: `computeColWidthMm` parses
+`style.css` — page `size` (named or explicit) minus `@page :right`
+margins (falling back to base `@page`, then `config.pretext.colWidthMm`,
+then 93 mm for default A5). That width is `define`-injected as
+`COL_WIDTH` while Bun bundles `pretext-client.ts` into the inline
+`<!--PRETEXT-->` script. Paragraphs containing any element child are
+skipped — only pure-text paragraphs are re-laid-out.
+
+Like the margin handler, it runs in `PagedConfig.before` (chaining the
+existing hook) after `document.fonts.ready`, so measurement uses the
+real print font.
+
+### Config variants
+
+`something.config.ts` may carry a top-level `variants` map — named
+configs (`draft`, `print`, an APA vs Chicago pair, …) each shallow-merged
+over the shared base. `resolveConfig` in `build.ts` splits `variants`
+off (it never reaches the pipeline) and merges the chosen one; an absent
+or unknown name resolves to the first. `buildHtml(dir, variant)` and
+`variantNames(dir)` expose this. Preview renders a screen-only corner
+`<select>` that reloads with `?variant=<name>`; the choice rides the
+query string through live-reloads. `export` takes the default (first)
+variant.
+
+For versions that differ only in config flags (draft vs print,
+citation style) the shallow merge is enough. For a *radically*
+different format — square pages, big type for an Instagram carousel —
+a variant sets `css: "<file>"`: `buildHtml` swaps the stylesheet
+`<link>` and reads that file (not `style.css`) for pretext's
+column-width detection. Geometry and type stay in CSS where they
+belong; the variant just points at a different sheet. See
+`sample-book/instagram.css`.
 
 ### `serve.ts` — preview
 
