@@ -88,11 +88,10 @@ Flat layout under `src/`, no subpackages:
 
 ```
 src/
-  main.ts        # CLI entry: dispatches init / preview / export
-  build.ts       # md → html pipeline (remark + directives + citations)
+  main.ts        # CLI entry: dispatches init / preview / export (incl. HTML → PDF via pagedjs-cli)
+  compile.ts     # md → html pipeline (remark + directives + citations)
   citations.ts   # .bib parser + citations remark plugin
-  serve.ts       # HTTP server + fs.watch + WebSocket live-reload
-  export.ts      # HTML → PDF via pagedjs-cli
+  preview.ts     # HTTP server + fs.watch + WebSocket live-reload
   pretext-client.ts # in-browser optimal paragraph justification
   template.html  # HTML shell (loads paged.js + style.css)
   template.css   # baseline stylesheet, copied into empty projects
@@ -120,7 +119,7 @@ independent consumer.
 - **Raw HTML** — always passes through (`rehype-raw`). Escape hatch
   for anything the directive layer can't express.
 
-### The unified pipeline (`build.ts`)
+### The unified pipeline (`compile.ts`)
 
 ```
 load quimera.config.ts (if present)
@@ -170,9 +169,9 @@ h1 { break-before: right; margin-top: 30%; }  /* chapter → recto */
 .cover   { break-before: right; break-after: page; display: flex; ... }
 ```
 
-If a project has no `style.css`, `export.ts` drops the tool's
+If a project has no `style.css`, `main.ts` drops the tool's
 `template.css` in for the run and removes it after. Preview's
-`serve.ts` does the same fallback via HTTP.
+`preview.ts` does the same fallback via HTTP.
 
 ### Left/right-aware handlers
 
@@ -194,7 +193,7 @@ penalties for rivers and over-tight lines). The paragraph is rewritten
 into one `block` span per line with an explicit `word-spacing`.
 
 The client script needs the content column width, which lives in CSS,
-not the DOM at run time. `build.ts` reads it: `computeColWidthMm` parses
+not the DOM at run time. `compile.ts` reads it: `computeColWidthMm` parses
 `style.css` — page `size` (named or explicit) minus `@page :right`
 margins (falling back to base `@page`, then 93 mm for default A5).
 That width is `define`-injected as
@@ -210,7 +209,7 @@ real print font.
 
 `quimera.config.ts` may carry a top-level `variants` map — named
 configs (`draft`, `print`, an APA vs Chicago pair, …) each shallow-merged
-over the shared base. `resolveConfig` in `build.ts` splits `variants`
+over the shared base. `resolveConfig` in `compile.ts` splits `variants`
 off (it never reaches the pipeline) and merges the chosen one; an absent
 or unknown name resolves to the first. `buildHtml(dir, variant)` and
 `variantNames(dir)` expose this. Preview renders a screen-only corner
@@ -227,7 +226,7 @@ column-width detection. Geometry and type stay in CSS where they
 belong; the variant just points at a different sheet. See
 `sample-book/instagram.css`.
 
-### `serve.ts` — preview
+### `preview.ts` — preview
 
 - Bun HTTP server on `localhost:4000`.
 - `GET /` → freshly rebuilt HTML with a WebSocket reload script
@@ -238,7 +237,7 @@ belong; the variant just points at a different sheet. See
   dotfiles and tilde-backups ignored. Any change → all connected
   sockets get `"reload"` → browser calls `location.reload()`.
 
-### `export.ts` — PDF
+### export (`main.ts`) — PDF
 
 Builds HTML into `<project>/.quimera-build.html`, invokes
 `bunx pagedjs-cli -o book.pdf <that html>`, cleans up.
@@ -247,15 +246,15 @@ Builds HTML into `<project>/.quimera-build.html`, invokes
 HTML also loads it (which `template.html` does, for preview), pagedjs
 runs twice and paginates the already-paginated output — you get
 duplicated pages, mis-sized output, and content overlaid on later
-pages. `export.ts` strips the `<script src=".../paged.polyfill.js">`
+pages. `main.ts` strips the `<script src=".../paged.polyfill.js">`
 tag out of the built HTML before handing it to `pagedjs-cli`.
 
 ### CLI surface (`main.ts`)
 
 ```
 quimera init    <dir>   # cp -r sample-book/ <dir>
-quimera preview <dir>   # serve.ts
-quimera export  <dir>   # export.ts
+quimera preview <dir>   # preview.ts
+quimera export  <dir>   # export (main.ts)
 ```
 
 Bun's built-in arg parsing — no `commander`-style dependency.

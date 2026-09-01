@@ -1,4 +1,4 @@
-import { buildHtml, variantNames } from "./build.ts";
+import { buildHtml, variantNames } from "./compile.ts";
 import { watch } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
