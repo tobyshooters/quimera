@@ -6,9 +6,9 @@ Bookmaker CLI that converts bundles of Markdown into a multi-format book.
 bun install
 bun link
 
-something init    <dir>   # scaffold a new book from sample-book/
-something preview <dir>   # live-reloading preview at localhost:4000
-something export  <dir>   # write <dir>/book.pdf
+quimera init    <dir>   # scaffold a new book from sample-book/
+quimera preview <dir>   # live-reloading preview at localhost:4000
+quimera export  <dir>   # write <dir>/book.pdf
 ```
 
 Based on HTML/CSS, the hegemonic and most accessible way of specifiying

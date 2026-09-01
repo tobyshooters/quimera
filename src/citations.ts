@@ -86,7 +86,7 @@ export async function loadBib(path) {
   return bib;
 }
 
-// Baseline citation formatter. Users override in something.config.ts.
+// Baseline citation formatter. Users override in quimera.config.ts.
 // Inline citations are wrapped in parentheses by default.
 export function defaultFormatCitation(entry, locator, mode) {
   if (!entry) {

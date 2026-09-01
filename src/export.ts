@@ -16,7 +16,7 @@ export async function exportPdf(projectDir, variant) {
     /\s*<script src="[^"]*paged\.polyfill\.js"[^>]*><\/script>/,
     "",
   );
-  const htmlPath = join(projectDir, ".something-build.html");
+  const htmlPath = join(projectDir, ".quimera-build.html");
   await writeFile(htmlPath, html);
 
   const userCss = join(projectDir, STYLE_DIR, "default.css");

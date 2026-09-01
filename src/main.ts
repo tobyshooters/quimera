@@ -19,7 +19,7 @@ async function init(projectDir) {
 }
 
 function usage() {
-  console.error("usage: something <preview|export|init> <dir> [variant]");
+  console.error("usage: quimera <preview|export|init> <dir> [variant]");
   process.exit(1);
 }
 

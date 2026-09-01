@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "something",
+      "name": "quimera",
       "dependencies": {
         "rehype-raw": "^7.0.0",
         "rehype-stringify": "^10.0.1",

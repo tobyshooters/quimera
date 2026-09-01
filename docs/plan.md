@@ -1,4 +1,4 @@
-# `something` — a Bun-based markdown-to-print CLI
+# `quimera` — a Bun-based markdown-to-print CLI
 
 ## What it is
 
@@ -12,9 +12,9 @@ md → unified/remark → html → paged.js → chromium print → pdf
 Three commands:
 
 ```
-something init    <dir>   # scaffold a new book from sample-book/
-something preview <dir>   # live-reloading preview at localhost:4000
-something export  <dir>   # write <dir>/book.pdf via pagedjs-cli
+quimera init    <dir>   # scaffold a new book from sample-book/
+quimera preview <dir>   # live-reloading preview at localhost:4000
+quimera export  <dir>   # write <dir>/book.pdf via pagedjs-cli
 ```
 
 ## The userspace model
@@ -32,10 +32,10 @@ my-book/
   images/
   refs.bib                # optional; simple @type{key, field = {value}}
   style.css               # @page rules, class visuals, custom props
-  something.config.ts     # optional — user's plugin surface
+  quimera.config.ts     # optional — user's plugin surface
 ```
 
-`something.config.ts` is a plain Bun-loadable module. Everything on it
+`quimera.config.ts` is a plain Bun-loadable module. Everything on it
 is optional; a project with no config file still builds.
 
 ```ts
@@ -115,7 +115,7 @@ independent consumer.
 ### The unified pipeline (`build.ts`)
 
 ```
-load something.config.ts (if present)
+load quimera.config.ts (if present)
 concat content/*.md alphabetically
   → unified()
       .use(remarkParse)
@@ -200,7 +200,7 @@ real print font.
 
 ### Config variants
 
-`something.config.ts` may carry a top-level `variants` map — named
+`quimera.config.ts` may carry a top-level `variants` map — named
 configs (`draft`, `print`, an APA vs Chicago pair, …) each shallow-merged
 over the shared base. `resolveConfig` in `build.ts` splits `variants`
 off (it never reaches the pipeline) and merges the chosen one; an absent
@@ -232,7 +232,7 @@ belong; the variant just points at a different sheet. See
 
 ### `export.ts` — PDF
 
-Builds HTML into `<project>/.something-build.html`, invokes
+Builds HTML into `<project>/.quimera-build.html`, invokes
 `bunx pagedjs-cli -o book.pdf <that html>`, cleans up.
 
 **Gotcha:** `pagedjs-cli` injects `paged.polyfill.js` itself. If the
@@ -245,9 +245,9 @@ tag out of the built HTML before handing it to `pagedjs-cli`.
 ### CLI surface (`main.ts`)
 
 ```
-something init    <dir>   # cp -r sample-book/ <dir>
-something preview <dir>   # serve.ts
-something export  <dir>   # export.ts
+quimera init    <dir>   # cp -r sample-book/ <dir>
+quimera preview <dir>   # serve.ts
+quimera export  <dir>   # export.ts
 ```
 
 Bun's built-in arg parsing — no `commander`-style dependency.
@@ -271,12 +271,12 @@ userspace via config + CSS + plugins:
 
 End-to-end, in this order:
 
-1. `something init /tmp/testbook` — scaffolds `content/`, `style.css`,
-   `refs.bib`, `something.config.ts`, `images/`.
-2. `something preview /tmp/testbook` — opens `localhost:4000`. Edit a
+1. `quimera init /tmp/testbook` — scaffolds `content/`, `style.css`,
+   `refs.bib`, `quimera.config.ts`, `images/`.
+2. `quimera preview /tmp/testbook` — opens `localhost:4000`. Edit a
    `.md`, confirm live reload fires under 500ms. Confirm margin notes
    float on the correct side across facing pages.
-3. `something export /tmp/testbook` — produces `book.pdf`. Open in a
+3. `quimera export /tmp/testbook` — produces `book.pdf`. Open in a
    viewer and check:
    - page size = A5 (unless overridden in style.css),
    - `pdfinfo` page count matches pagedjs's "Rendering N pages" line,
@@ -287,5 +287,5 @@ End-to-end, in this order:
 4. Sanity check the extension surface: add a `:::warning ... :::`
    block to a `.md`. Confirm it renders as raw text until you add
    `warning: { tag: "aside", class: "warning" }` to
-   `something.config.ts` and a matching `.warning { ... }` rule to
+   `quimera.config.ts` and a matching `.warning { ... }` rule to
    `style.css`. Then it should render styled — with zero tool edits.

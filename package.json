@@ -7,7 +7,7 @@
     "format:check": "prettier --check ."
   },
   "bin": {
-    "something": "./src/main.ts"
+    "quimera": "./src/main.ts"
   },
   "dependencies": {
     "rehype-raw": "^7.0.0",

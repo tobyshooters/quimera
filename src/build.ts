@@ -136,7 +136,7 @@ async function pretextScript(colWidthPx: number): Promise<string> {
 // Turn container/leaf/text directives into HTML elements per the registry.
 // `:margin[hi]` → `<aside class="margin">hi</aside>`.
 // The tool ships no defaults — the registry comes entirely from the
-// user's something.config.ts. See sample-book for an example.
+// user's quimera.config.ts. See sample-book for an example.
 function directivesToHast(registry) {
   return (tree) => {
     visit(tree, (node) => {
