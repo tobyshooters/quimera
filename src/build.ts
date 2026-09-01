@@ -8,7 +8,7 @@ import rehypeStringify from "rehype-stringify";
 import { visit } from "unist-util-visit";
 import { readdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { citations, loadBib, defaultFormatCitation } from "./citations.ts";
 
 const TOOL_DIR = new URL(".", import.meta.url).pathname;
@@ -185,6 +185,31 @@ function resolveConfig(raw, variant) {
   return { ...base, ...variants[name] };
 }
 
+// Rewrite relative asset paths in a chunk so they resolve against the
+// project dir (the base the rendered HTML is served from) rather than the
+// markdown file's own directory. Absolute paths, URLs, and data URIs pass
+// through untouched. Covers markdown images `![](path)` and raw HTML
+// `src="path"` attributes.
+function rewriteAssetPaths(md, fileDir, projectDir) {
+  const prefix = relative(projectDir, fileDir);
+  if (!prefix || prefix.startsWith("..")) {
+    return md;
+  }
+  const isRelative = (url) =>
+    url && !isAbsolute(url) && !/^[a-z][a-z0-9+.-]*:/i.test(url) && !url.startsWith("/") && !url.startsWith("#");
+  const rebase = (url) => {
+    const clean = url.replace(/^\.\//, "");
+    return `${prefix}/${clean}`;
+  };
+  return md
+    .replace(/(!\[[^\]]*\]\()([^)\s]+)(\))/g, (m, pre, url, post) =>
+      isRelative(url) ? `${pre}${rebase(url)}${post}` : m,
+    )
+    .replace(/(\bsrc\s*=\s*")([^"]+)(")/g, (m, pre, url, post) =>
+      isRelative(url) ? `${pre}${rebase(url)}${post}` : m,
+    );
+}
+
 // Assemble the book's markdown. A `book.md` at the project root defines
 // the reading order via `!include <path>` lines, each resolved relative to
 // the project dir. Non-include lines pass through, so book.md can also hold
@@ -199,7 +224,8 @@ async function loadContent(projectDir) {
       const m = line.match(/^\s*!include\s+(.+?)\s*$/);
       if (m) {
         const path = isAbsolute(m[1]) ? m[1] : join(projectDir, m[1]);
-        out.push(await readFile(path, "utf8"));
+        const raw = await readFile(path, "utf8");
+        out.push(rewriteAssetPaths(raw, dirname(path), projectDir));
         out.push("");
       } else {
         out.push(line);
@@ -212,7 +238,11 @@ async function loadContent(projectDir) {
   const files = existsSync(contentDir)
     ? (await readdir(contentDir)).filter((f) => f.endsWith(".md")).sort()
     : [];
-  const chunks = await Promise.all(files.map((f) => readFile(join(contentDir, f), "utf8")));
+  const chunks = await Promise.all(
+    files.map(async (f) =>
+      rewriteAssetPaths(await readFile(join(contentDir, f), "utf8"), contentDir, projectDir),
+    ),
+  );
   return chunks.join("\n\n");
 }
 

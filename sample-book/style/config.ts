@@ -5,9 +5,16 @@ export default {
 
   variants: {
     print: {},
-    draft: { knuth_pratt_via_pretext: false },
-    a4: { css: "a4.css" },
-    instagram: { css: "instagram.css" },
+    draft: { 
+      knuth_pratt_via_pretext: false 
+    },
+    a4: {
+      css: "a4.css"
+    },
+    instagram: {
+      css: "instagram.css",
+      knuth_pratt_via_pretext: false
+    },
   },
 
   // Extension to markdown syntax

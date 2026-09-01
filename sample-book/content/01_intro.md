@@ -8,11 +8,11 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
 aliquip ex ea commodo consequat.
 
 :::figure
-![A caption for the image](images/example.svg)
+![A caption for the image](./example.svg)
 :::
 
 :::figure
-![](images/screenshot.png)
+![](./screenshot.png)
 :::
 
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore

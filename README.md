@@ -32,9 +32,8 @@ extension surface, and design rationale.
 │
 ├── book.md                    The file that drives the content.
 ├── content
-│   ├── intro.md
-│   └── second.md
-├── images
+│   ├── 01_intro.md
+│   ├── 02_second.md
 │   ├── screenshot.png
 │   └── example.svg
 ├── refs.bib
@@ -43,7 +42,6 @@ extension surface, and design rationale.
     ├── default.css
     ├── a4.css
     ├── instagram.css
-    └── fonts
-        ├── Agave-Bold.ttf
-        └── Agave-Regular.ttf
+    ├── Agave-Bold.ttf
+    └── Agave-Regular.ttf
 ```

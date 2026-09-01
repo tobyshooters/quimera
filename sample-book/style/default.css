@@ -2,13 +2,13 @@
 
 @font-face {
   font-family: "Agave";
-  src: url(fonts/Agave-Regular.ttf) format("truetype");
+  src: url(./Agave-Regular.ttf) format("truetype");
   font-weight: normal;
 }
 
 @font-face {
   font-family: "Agave";
-  src: url(fonts/Agave-Bold.ttf) format("truetype");
+  src: url(./Agave-Bold.ttf) format("truetype");
   font-weight: bold;
 }
 
