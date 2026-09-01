@@ -14,7 +14,7 @@ export async function exportPdf(projectDir, variant) {
   // and running both paginates the already-paginated output.
   const html = (await buildHtml(projectDir, variant)).replace(
     /\s*<script src="[^"]*paged\.polyfill\.js"[^>]*><\/script>/,
-    ""
+    "",
   );
   const htmlPath = join(projectDir, ".something-build.html");
   await writeFile(htmlPath, html);
@@ -27,10 +27,9 @@ export async function exportPdf(projectDir, variant) {
   }
 
   const outputPdf = join(projectDir, variant ? `book-${variant}.pdf` : "book.pdf");
-  const proc = Bun.spawn(
-    ["bunx", "pagedjs-cli", "-o", outputPdf, htmlPath],
-    { stdio: ["inherit", "inherit", "inherit"] }
-  );
+  const proc = Bun.spawn(["bunx", "pagedjs-cli", "-o", outputPdf, htmlPath], {
+    stdio: ["inherit", "inherit", "inherit"],
+  });
   const code = await proc.exited;
 
   await unlink(htmlPath);

@@ -56,7 +56,7 @@ Delete meta-justifications — comments defending why a thing is shared, canonic
 or "can't drift".
 Docstrings keep the WHAT and drop the WHY-essay: `"""Wipe cross-media matches,
 re-pick nearest exemplar. Returns False if no trusted exemplars exist."""`
-The one place to *add* comments is data/struct definitions: group fields by
+The one place to _add_ comments is data/struct definitions: group fields by
 provenance with a one-word banner (`-- blob read`, `-- materialized`). Data
 dominates (Pike Rule 5).
 

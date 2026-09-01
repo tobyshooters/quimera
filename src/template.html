@@ -1,74 +1,78 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Book</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="style.css" />
 
-<head>
-  <meta charset="utf-8">
-  <title>Book</title>
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css">
-
-  <!--
+    <!--
   Preview chrome. Kept out of style.css so paged.js's Polisher
   doesn't strip it while processing the print stylesheet. paged.js
   ignores <style media="screen">.
   -->
-  <style media="screen">
-    body { background: #f0f0f0; }
-    .pagedjs_pages {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0;
-    }
-    .pagedjs_page {
-      background: white;
-      margin: 20px 0;
-      border: 1px solid #bbb;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    }
-    .pagedjs_left_page  { margin-right: 0; }
-    .pagedjs_right_page { margin-left: 0; }
-    /* Page 1 is a recto; reserve a page-sized phantom slot to its
+    <style media="screen">
+      body {
+        background: #f0f0f0;
+      }
+      .pagedjs_pages {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0;
+      }
+      .pagedjs_page {
+        background: white;
+        margin: 20px 0;
+        border: 1px solid #bbb;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+      .pagedjs_left_page {
+        margin-right: 0;
+      }
+      .pagedjs_right_page {
+        margin-left: 0;
+      }
+      /* Page 1 is a recto; reserve a page-sized phantom slot to its
        left so it sits alone on the right, and pages 2/3, 4/5, ...
        wrap into real verso/recto spreads.
        Width defaults to A5; override with --preview-page-width. */
-    .pagedjs_pages::before {
-      content: "";
-      width: var(--preview-page-width, 148mm);
-    }
-  </style>
+      .pagedjs_pages::before {
+        content: "";
+        width: var(--preview-page-width, 148mm);
+      }
+    </style>
 
-  <!--
+    <!--
     Register the OuterMargin handler BEFORE paged.polyfill.js loads.
     paged.js strips selectors targeting .pagedjs_left_page /
     .pagedjs_right_page out of user stylesheets, so we do the
     left/right swap in JS instead. Works in preview AND export.
   -->
-  <script>
-    window.PagedConfig = {
-      before() {
-        class OuterMargin extends window.Paged.Handler {
-          afterPageLayout(pageElement) {
-            const isLeft = pageElement.classList.contains("pagedjs_left_page");
-            const side  = isLeft ? "left" : "right";
-            const other = isLeft ? "right" : "left";
-            pageElement.querySelectorAll(".margin").forEach((el) => {
-              el.style.float = side;
-              el.style.setProperty(`margin-${side}`, "-3.5cm", "important");
-              el.style.removeProperty(`margin-${other}`);
-            });
+    <script>
+      window.PagedConfig = {
+        before() {
+          class OuterMargin extends window.Paged.Handler {
+            afterPageLayout(pageElement) {
+              const isLeft = pageElement.classList.contains("pagedjs_left_page");
+              const side = isLeft ? "left" : "right";
+              const other = isLeft ? "right" : "left";
+              pageElement.querySelectorAll(".margin").forEach((el) => {
+                el.style.float = side;
+                el.style.setProperty(`margin-${side}`, "-3.5cm", "important");
+                el.style.removeProperty(`margin-${other}`);
+              });
+            }
           }
-        }
-        window.Paged.registerHandlers(OuterMargin);
-      },
-    };
-  </script>
-  <!--PRETEXT-->
-  <script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
-</head>
+          window.Paged.registerHandlers(OuterMargin);
+        },
+      };
+    </script>
+    <!--PRETEXT-->
+    <script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
+  </head>
 
-<body>
-<!--BODY-->
-</body>
-
+  <body>
+    <!--BODY-->
+  </body>
 </html>

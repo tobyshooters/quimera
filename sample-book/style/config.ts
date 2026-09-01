@@ -4,11 +4,10 @@
 
 export default {
   directives: {
-
     // E.g. inline marker
     // :margin[text]
     // <span class="margin">text</span>
-    margin: { tag: "span",   class: "margin" },
+    margin: { tag: "span", class: "margin" },
 
     // E.g. self-contained marker
     // ::pagebreak
@@ -23,8 +22,7 @@ export default {
     // E.g. full-page block that vertically centers its content
     // :::cover ... :::
     // <section class="cover">...</section>
-    cover:  { tag: "section", class: "cover" },
-
+    cover: { tag: "section", class: "cover" },
   },
 
   // remarkPlugins: [],
@@ -42,8 +40,8 @@ export default {
   // shows a dropdown to swap between them; the first is the default
   // (also what `export` builds). Omit `variants` for a single config.
   variants: {
-    print: {},                  // shared base as-is (A5)
-    draft: { pretext: false },  // greedy justification, faster reloads
+    print: {}, // shared base as-is (A5)
+    draft: { pretext: false }, // greedy justification, faster reloads
 
     // Very similar: A4 reuses default.css via @import, overriding only geometry.
     a4: { css: "a4.css" },

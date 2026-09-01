@@ -45,10 +45,13 @@ export function citations({ bib, formatCitation }) {
     if (cited.size === 0) {
       return;
     }
-    const items = [...cited].sort().map((k) => {
-      const full = formatCitation(bib[k], "", "full");
-      return `  <li id="bib-${k}">${full}</li>`;
-    }).join("\n");
+    const items = [...cited]
+      .sort()
+      .map((k) => {
+        const full = formatCitation(bib[k], "", "full");
+        return `  <li id="bib-${k}">${full}</li>`;
+      })
+      .join("\n");
     tree.children.push({
       type: "html",
       value: `<section class="bibliography">\n<h1>References</h1>\n<ul>\n${items}\n</ul>\n</section>`,

@@ -8,19 +8,19 @@ const TOOL_DIR = new URL(".", import.meta.url).pathname;
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
-  ".css":  "text/css; charset=utf-8",
-  ".js":   "text/javascript; charset=utf-8",
-  ".ts":   "text/javascript; charset=utf-8",
-  ".png":  "image/png",
-  ".jpg":  "image/jpeg",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".ts": "text/javascript; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
-  ".gif":  "image/gif",
-  ".svg":  "image/svg+xml",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
   ".webp": "image/webp",
-  ".pdf":  "application/pdf",
+  ".pdf": "application/pdf",
   ".woff": "font/woff",
-  ".woff2":"font/woff2",
-  ".ttf":  "font/ttf",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
 };
 
 const RELOAD_SCRIPT = `
@@ -38,9 +38,9 @@ function variantPicker(names, current) {
   if (names.length === 0) {
     return "";
   }
-  const opts = names.map((n) =>
-    `<option value="${n}"${n === current ? " selected" : ""}>${n}</option>`
-  ).join("");
+  const opts = names
+    .map((n) => `<option value="${n}"${n === current ? " selected" : ""}>${n}</option>`)
+    .join("");
   return `
 <script>
   (() => {
@@ -219,8 +219,12 @@ export async function preview(projectDir) {
       return new Response("not found", { status: 404 });
     },
     websocket: {
-      open(ws)  { clients.add(ws); },
-      close(ws) { clients.delete(ws); },
+      open(ws) {
+        clients.add(ws);
+      },
+      close(ws) {
+        clients.delete(ws);
+      },
       message() {},
     },
   });

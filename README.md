@@ -39,11 +39,11 @@ export default {
   // Register class-shaped blocks. One entry here + one CSS rule = a
   // new kind of block. The tool ships no directive defaults.
   directives: {
-    margin:    { tag: "span",    class: "margin" },
-    figure:    { tag: "figure",  class: "figure" },
-    cover:     { tag: "section", class: "cover" },
+    margin: { tag: "span", class: "margin" },
+    figure: { tag: "figure", class: "figure" },
+    cover: { tag: "section", class: "cover" },
     // yours:
-    warning:   { tag: "aside",   class: "warning" },
+    warning: { tag: "aside", class: "warning" },
   },
 
   // Splice your own plugins into the unified pipeline.

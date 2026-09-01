@@ -8,21 +8,22 @@
 @page {
   size: A5;
   margin: 2cm 4cm 1.5cm 1.5cm;
-  @bottom-center { content: counter(page); }
+  @bottom-center {
+    content: counter(page);
+  }
 }
 
-@page :left  { 
-    /* verso: outer=left */
-    margin-left: 4cm;
-    margin-right: 1.5cm; 
-} 
+@page :left {
+  /* verso: outer=left */
+  margin-left: 4cm;
+  margin-right: 1.5cm;
+}
 
 @page :right {
-    /* recto: outer=right */
-    margin-left: 1.5cm; 
-    margin-right: 4cm;   
-} 
-
+  /* recto: outer=right */
+  margin-left: 1.5cm;
+  margin-right: 4cm;
+}
 
 /* Custom classes */
 
@@ -41,27 +42,31 @@
   text-align: center;
 }
 
-.cover h1, .cover h2 { 
-    break-before: auto; 
-    margin-top: 0; 
+.cover h1,
+.cover h2 {
+  break-before: auto;
+  margin-top: 0;
 }
 
 @page cover {
-    @bottom-center { content: none; }
+  @bottom-center {
+    content: none;
+  }
 }
 
-.pagebreak { break-after: page; }
+.pagebreak {
+  break-after: page;
+}
 
 .margin {
   clear: both;
-  width: 3cm; 
+  width: 3cm;
   font-size: 0.8em;
   line-height: 1.2;
   /* float + outer offset are set per-page by the OuterMargin
      handler in template.html — paged.js strips .pagedjs_*
      selectors from user CSS, so we can't do it here. */
 }
-
 
 /* Default classes */
 

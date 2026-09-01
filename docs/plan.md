@@ -45,15 +45,15 @@ export default {
   //   ::pagebreak                → <div class="pagebreak"></div>
   //   :::figure ... :::          → <figure class="figure">...</figure>
   directives: {
-    margin:    { tag: "span",    class: "margin" },
-    pagebreak: { tag: "div",     class: "pagebreak" },
-    figure:    { tag: "figure",  class: "figure" },
-    cover:     { tag: "section", class: "cover" },
+    margin: { tag: "span", class: "margin" },
+    pagebreak: { tag: "div", class: "pagebreak" },
+    figure: { tag: "figure", class: "figure" },
+    cover: { tag: "section", class: "cover" },
   },
 
   // Extra plugins spliced into the unified pipeline.
-  remarkPlugins:  [],
-  rehypePlugins:  [],
+  remarkPlugins: [],
+  rehypePlugins: [],
 
   // Override the baseline (author, year, p. N) citation string.
   formatCitation: (entry, locator, mode) => `${entry.author} (${entry.year})`,
@@ -106,8 +106,8 @@ independent consumer.
   `formatCitation` in config.
 - **Directives** — `remark-directive` provides three forms; the
   project's `directives` table maps each name to `{tag, class}`:
-  - `:name[text]`     — inline / text
-  - `::name`          — leaf (self-closing)
+  - `:name[text]` — inline / text
+  - `::name` — leaf (self-closing)
   - `:::name ... :::` — container
 - **Raw HTML** — always passes through (`rehype-raw`). Escape hatch
   for anything the directive layer can't express.
@@ -211,7 +211,7 @@ query string through live-reloads. `export` takes the default (first)
 variant.
 
 For versions that differ only in config flags (draft vs print,
-citation style) the shallow merge is enough. For a *radically*
+citation style) the shallow merge is enough. For a _radically_
 different format — square pages, big type for an Instagram carousel —
 a variant sets `css: "<file>"`: `buildHtml` swaps the stylesheet
 `<link>` and reads that file (not `style.css`) for pretext's

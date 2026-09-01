@@ -18,8 +18,13 @@ export const STYLE_DIR = "style";
 
 // CSS page size name → [width, height] in mm
 const PAGE_SIZES: Record<string, [number, number]> = {
-  a3: [297, 420], a4: [210, 297], a5: [148, 210], a6: [105, 148],
-  letter: [215.9, 279.4], legal: [215.9, 355.6], tabloid: [279.4, 431.8],
+  a3: [297, 420],
+  a4: [210, 297],
+  a5: [148, 210],
+  a6: [105, 148],
+  letter: [215.9, 279.4],
+  legal: [215.9, 355.6],
+  tabloid: [279.4, 431.8],
 };
 
 // Parse a CSS length value (cm, mm, in, pt, px) to mm.
@@ -28,11 +33,16 @@ function cssLenToMm(val: string): number | null {
   if (!m) return null;
   const n = parseFloat(m[1]);
   switch (m[2]) {
-    case "cm": return n * 10;
-    case "mm": return n;
-    case "in": return n * 25.4;
-    case "pt": return n * 25.4 / 72;
-    case "px": return n * 25.4 / 96;
+    case "cm":
+      return n * 10;
+    case "mm":
+      return n;
+    case "in":
+      return n * 25.4;
+    case "pt":
+      return (n * 25.4) / 72;
+    case "px":
+      return (n * 25.4) / 96;
   }
   return null;
 }
@@ -45,10 +55,14 @@ function parseMarginShorthand(val: string): { right: number; left: number } | nu
   const [top, right, bottom, left] = mm as number[];
   // CSS shorthand: 1=all, 2=top/bottom & right/left, 3=top & right/left & bottom, 4=top right bottom left
   switch (parts.length) {
-    case 1: return { right: top, left: top };
-    case 2: return { right: right!, left: right! };
-    case 3: return { right: right!, left: right! };
-    case 4: return { right: right!, left: left! };
+    case 1:
+      return { right: top, left: top };
+    case 2:
+      return { right: right!, left: right! };
+    case 3:
+      return { right: right!, left: right! };
+    case 4:
+      return { right: right!, left: left! };
   }
   return null;
 }
@@ -181,9 +195,7 @@ export async function buildHtml(projectDir, variant) {
   const files = existsSync(contentDir)
     ? (await readdir(contentDir)).filter((f) => f.endsWith(".md")).sort()
     : [];
-  const chunks = await Promise.all(
-    files.map((f) => readFile(join(contentDir, f), "utf8"))
-  );
+  const chunks = await Promise.all(files.map((f) => readFile(join(contentDir, f), "utf8")));
   const md = chunks.join("\n\n");
 
   let proc = unified()

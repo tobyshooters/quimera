@@ -30,9 +30,15 @@ if (!cmd || !dir) {
 const abs = resolve(dir);
 
 switch (cmd) {
-  case "preview": await preview(abs);            break;
-  case "export":  await exportPdf(abs, variant); break;
-  case "init":    await init(abs);               break;
+  case "preview":
+    await preview(abs);
+    break;
+  case "export":
+    await exportPdf(abs, variant);
+    break;
+  case "init":
+    await init(abs);
+    break;
   default:
     usage();
 }

@@ -3,16 +3,28 @@
 
 @import "default.css";
 
-:root { --font-size: 11pt; }
+:root {
+  --font-size: 11pt;
+}
 
 @page {
   size: A4;
   margin: 2.5cm 4.5cm 2cm 2cm;
-  @bottom-center { content: counter(page); }
+  @bottom-center {
+    content: counter(page);
+  }
 }
 
-@page :left  { margin-left: 4.5cm; margin-right: 2cm;   }  /* verso */
-@page :right { margin-left: 2cm;   margin-right: 4.5cm; }  /* recto */
+@page :left {
+  margin-left: 4.5cm;
+  margin-right: 2cm;
+} /* verso */
+@page :right {
+  margin-left: 2cm;
+  margin-right: 4.5cm;
+} /* recto */
 
 /* Match the preview phantom slot to the A4 page. */
-.pagedjs_pages { --preview-page-width: 210mm; }
+.pagedjs_pages {
+  --preview-page-width: 210mm;
+}
