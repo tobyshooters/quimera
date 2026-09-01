@@ -216,7 +216,7 @@ export async function buildHtml(projectDir, variant) {
   proc = proc.use(rehypeStringify);
 
   // The active stylesheet, named in config (`css`) and overridable per
-  // variant. Drives both the <link> and the pretext column-width read.
+  // variant. Drives both the <link> and the knuth_pratt_via_pretext column-width read.
   const styleSheet = config.css || "default.css";
 
   const body = String(await proc.process(md));
@@ -225,16 +225,13 @@ export async function buildHtml(projectDir, variant) {
     .replace("<!--BODY-->", body)
     .replace('href="style.css"', `href="${STYLE_DIR}/${styleSheet}"`);
 
-  if (config.pretext) {
+  if (config.knuth_pratt_via_pretext) {
     // Compute column width from the active stylesheet; fall back to A5 with default margins (93 mm).
     const styleCssPath = join(projectDir, STYLE_DIR, styleSheet);
     let colWidthMm: number | null = null;
     if (existsSync(styleCssPath)) {
       const userCss = await readFile(styleCssPath, "utf8");
       colWidthMm = computeColWidthMm(userCss);
-    }
-    if (colWidthMm === null && config.pretext !== true) {
-      colWidthMm = (config.pretext as { colWidthMm?: number }).colWidthMm ?? null;
     }
     if (colWidthMm === null) colWidthMm = 93; // A5 with default margins
     const colWidthPx = colWidthMm * (96 / 25.4);

@@ -1,6 +1,4 @@
-/* Square, large-type layout for an Instagram carousel export.
-   A radically different `variant` — swaps geometry and typography,
-   reuses the same content and class names. */
+/* Square, large-type layout for an Instagram carousel export. */
 
 :root {
   --font-body: Arial, "Iowan Old Style", serif;

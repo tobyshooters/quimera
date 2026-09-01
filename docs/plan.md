@@ -63,7 +63,7 @@ export default {
   // what `export` builds. Omit for a single config.
   variants: {
     print: {},
-    draft: { pretext: false },
+    draft: { knuth_pratt_via_pretext: false },
   },
 };
 ```
@@ -179,7 +179,7 @@ loads, via `window.PagedConfig.before`.
 ### Optimal justification (`pretext-client.ts`)
 
 Browsers justify greedily, line by line; the result rivers and gaps.
-Opt in with `pretext: true` in config and each single-paragraph `<p>`
+Opt in with `knuth_pratt_via_pretext: true` in config and each single-paragraph `<p>`
 gets TeX-style optimal breaks instead: a Knuth–Plass-flavoured DP over
 word widths that minimizes total line badness (stretch cubed, plus
 penalties for rivers and over-tight lines). The paragraph is rewritten
@@ -188,8 +188,8 @@ into one `block` span per line with an explicit `word-spacing`.
 The client script needs the content column width, which lives in CSS,
 not the DOM at run time. `build.ts` reads it: `computeColWidthMm` parses
 `style.css` — page `size` (named or explicit) minus `@page :right`
-margins (falling back to base `@page`, then `config.pretext.colWidthMm`,
-then 93 mm for default A5). That width is `define`-injected as
+margins (falling back to base `@page`, then 93 mm for default A5).
+That width is `define`-injected as
 `COL_WIDTH` while Bun bundles `pretext-client.ts` into the inline
 `<!--PRETEXT-->` script. Paragraphs containing any element child are
 skipped — only pure-text paragraphs are re-laid-out.
