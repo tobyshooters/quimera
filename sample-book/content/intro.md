@@ -1,11 +1,3 @@
-:::cover
-
-# This is the title of the work
-
-by an Author
-
-:::
-
 # Chapter One
 
 Welcome to your book. Write markdown here. Drop into HTML when you need it.

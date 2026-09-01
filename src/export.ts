@@ -26,7 +26,9 @@ export async function exportPdf(projectDir, variant) {
     await copyFile(join(TOOL_DIR, "template.css"), userCss);
   }
 
-  const outputPdf = join(projectDir, variant ? `book-${variant}.pdf` : "book.pdf");
+  const outputDir = join(projectDir, "output");
+  await mkdir(outputDir, { recursive: true });
+  const outputPdf = join(outputDir, variant ? `book-${variant}.pdf` : "book.pdf");
   const proc = Bun.spawn(["bunx", "pagedjs-cli", "-o", outputPdf, htmlPath], {
     stdio: ["inherit", "inherit", "inherit"],
   });

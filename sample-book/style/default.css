@@ -1,7 +1,19 @@
 /* Global configurations */
 
+@font-face {
+  font-family: "Agave";
+  src: url(fonts/Agave-Regular.ttf) format("truetype");
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: "Agave";
+  src: url(fonts/Agave-Bold.ttf) format("truetype");
+  font-weight: bold;
+}
+
 :root {
-  --font-body: monospace, "Iowan Old Style", serif;
+  --font-body: "Agave", monospace, serif;
   --font-size: 9pt;
 }
 
