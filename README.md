@@ -25,13 +25,20 @@ extension surface, and design rationale.
 
 ```
 sample-book
+│
+├── book.md
+│
+├── book.pdf
+├── book-instagram.pdf
+│
 ├── content
-│   ├── 01-intro.md
-│   └── 02-second.md
+│   ├── intro.md
+│   └── second.md
 ├── images
 │   ├── 2026-08-31-19-23-20.png
 │   └── example.svg
 ├── refs.bib
+│
 └── style
     ├── a4.css
     ├── config.ts

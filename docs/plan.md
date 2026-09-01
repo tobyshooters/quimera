@@ -28,12 +28,20 @@ A book project looks like:
 
 ```
 my-book/
-  content/*.md            # concatenated in alphabetical order
+  book.md                 # master file; orders parts via `!include`
+  content/*.md            # chapter/section sources, transcluded by book.md
   images/
   refs.bib                # optional; simple @type{key, field = {value}}
   style.css               # @page rules, class visuals, custom props
   quimera.config.ts     # optional — user's plugin surface
 ```
+
+`book.md` is the master file that defines the book top-level. Each
+`!include <path>` line (path relative to the project root) is replaced
+by that file's contents, in the order they appear; any other line
+passes through, so `book.md` can also carry a title or front matter.
+Includes are not recursive. If there's no `book.md`, quimera falls
+back to concatenating `content/*.md` sorted by filename.
 
 `quimera.config.ts` is a plain Bun-loadable module. Everything on it
 is optional; a project with no config file still builds.
@@ -116,7 +124,7 @@ independent consumer.
 
 ```
 load quimera.config.ts (if present)
-concat content/*.md alphabetically
+expand book.md `!include`s (or concat content/*.md alphabetically)
   → unified()
       .use(remarkParse)
       .use(remarkGfm)                              // tables, footnotes

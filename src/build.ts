@@ -8,7 +8,7 @@ import rehypeStringify from "rehype-stringify";
 import { visit } from "unist-util-visit";
 import { readdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { citations, loadBib, defaultFormatCitation } from "./citations.ts";
 
 const TOOL_DIR = new URL(".", import.meta.url).pathname;
@@ -185,18 +185,44 @@ function resolveConfig(raw, variant) {
   return { ...base, ...variants[name] };
 }
 
-export async function buildHtml(projectDir, variant) {
-  const config = resolveConfig(await loadConfig(projectDir), variant);
-  const bib = await loadBib(join(projectDir, "refs.bib"));
-  const directives = config.directives || {};
-  const formatCitation = config.formatCitation || defaultFormatCitation;
+// Assemble the book's markdown. A `book.md` at the project root defines
+// the reading order via `!include <path>` lines, each resolved relative to
+// the project dir. Non-include lines pass through, so book.md can also hold
+// top-level prose or a title. Includes are not recursive. When there's no
+// book.md, fall back to concatenating content/*.md sorted by filename.
+async function loadContent(projectDir) {
+  const bookPath = join(projectDir, "book.md");
+  if (existsSync(bookPath)) {
+    const master = await readFile(bookPath, "utf8");
+    const out = [];
+    for (const line of master.split("\n")) {
+      const m = line.match(/^\s*!include\s+(.+?)\s*$/);
+      if (m) {
+        const path = isAbsolute(m[1]) ? m[1] : join(projectDir, m[1]);
+        out.push(await readFile(path, "utf8"));
+        out.push("");
+      } else {
+        out.push(line);
+      }
+    }
+    return out.join("\n");
+  }
 
   const contentDir = join(projectDir, "content");
   const files = existsSync(contentDir)
     ? (await readdir(contentDir)).filter((f) => f.endsWith(".md")).sort()
     : [];
   const chunks = await Promise.all(files.map((f) => readFile(join(contentDir, f), "utf8")));
-  const md = chunks.join("\n\n");
+  return chunks.join("\n\n");
+}
+
+export async function buildHtml(projectDir, variant) {
+  const config = resolveConfig(await loadConfig(projectDir), variant);
+  const bib = await loadBib(join(projectDir, "refs.bib"));
+  const directives = config.directives || {};
+  const formatCitation = config.formatCitation || defaultFormatCitation;
+
+  const md = await loadContent(projectDir);
 
   let proc = unified()
     .use(remarkParse)
