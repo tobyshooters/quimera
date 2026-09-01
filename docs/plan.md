@@ -92,7 +92,7 @@ src/
   compile.ts     # md → html pipeline (remark + directives + citations)
   citations.ts   # .bib parser + citations remark plugin
   preview.ts     # HTTP server + fs.watch + WebSocket live-reload
-  pretext-client.ts # in-browser optimal paragraph justification
+  pretext-polyfill.ts # in-browser optimal paragraph justification
   template.html  # HTML shell (loads paged.js + style.css)
   template.css   # baseline stylesheet, copied into empty projects
 sample-book/     # what `init` copies
@@ -183,7 +183,7 @@ each finished page and sets `float` + outer offset on `.margin`
 elements. Handler registration happens before `paged.polyfill.js`
 loads, via `window.PagedConfig.before`.
 
-### Optimal justification (`pretext-client.ts`)
+### Optimal justification (`pretext-polyfill.ts`)
 
 Browsers justify greedily, line by line; the result rivers and gaps.
 Opt in with `knuth_pratt_via_pretext: true` in config and each single-paragraph `<p>`
@@ -197,7 +197,7 @@ not the DOM at run time. `compile.ts` reads it: `computeColWidthMm` parses
 `style.css` — page `size` (named or explicit) minus `@page :right`
 margins (falling back to base `@page`, then 93 mm for default A5).
 That width is `define`-injected as
-`COL_WIDTH` while Bun bundles `pretext-client.ts` into the inline
+`COL_WIDTH` while Bun bundles `pretext-polyfill.ts` into the inline
 `<!--PRETEXT-->` script. Paragraphs containing any element child are
 skipped — only pure-text paragraphs are re-laid-out.
 

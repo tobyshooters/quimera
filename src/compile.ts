@@ -117,9 +117,9 @@ function computeColWidthMm(css: string): number | null {
   return null;
 }
 
-// Bundle pretext-client.ts and inject COL_WIDTH, returning an inline <script>.
+// Bundle pretext-polyfill.ts and inject COL_WIDTH, returning an inline <script>.
 async function pretextScript(colWidthPx: number): Promise<string> {
-  const entry = resolve(join(TOOL_DIR, "pretext-client.ts"));
+  const entry = resolve(join(TOOL_DIR, "pretext-polyfill.ts"));
   const result = await Bun.build({
     entrypoints: [entry],
     target: "browser",
@@ -127,7 +127,7 @@ async function pretextScript(colWidthPx: number): Promise<string> {
     define: { COL_WIDTH: colWidthPx.toFixed(2) },
   });
   if (!result.success) {
-    throw new AggregateError(result.logs, "pretext-client bundle failed");
+    throw new AggregateError(result.logs, "pretext-polyfill bundle failed");
   }
   const code = await result.outputs[0]!.text();
   return `<script>${code}<\/script>`;
