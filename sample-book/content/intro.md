@@ -12,7 +12,7 @@ aliquip ex ea commodo consequat.
 :::
 
 :::figure
-![](images/2026-08-31-19-23-20.png)
+![](images/screenshot.png)
 :::
 
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore

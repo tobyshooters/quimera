@@ -24,27 +24,26 @@ See `sample-book/` for a working project and `docs/plan.md` for the pipeline,
 extension surface, and design rationale.
 
 ```
-sample-book
 .
-├── output
-│   ├── book-a4.pdf
-│   ├── book-instagram.pdf
+├── output                     Examples of produced outputs
+│   ├── book-a4.pdf            from a single shared core, but 
+│   ├── book-instagram.pdf     with varied styling.
 │   └── book.pdf
 │
-├── book.md
+├── book.md                    The file that drives the content.
 ├── content
 │   ├── intro.md
 │   └── second.md
 ├── images
-│   ├── 2026-08-31-19-23-20.png
+│   ├── screenshot.png
 │   └── example.svg
 ├── refs.bib
 └── style
-    ├── a4.css
-    ├── config.ts
+    ├── config.ts              The file that drives the style/display.
     ├── default.css
-    ├── fonts
-    │   ├── Agave-Bold.ttf
-    │   └── Agave-Regular.ttf
-    └── instagram.css
+    ├── a4.css
+    ├── instagram.css
+    └── fonts
+        ├── Agave-Bold.ttf
+        └── Agave-Regular.ttf
 ```
