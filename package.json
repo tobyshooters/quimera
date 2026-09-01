@@ -2,6 +2,10 @@
   "name": "something",
   "version": "0.1.0",
   "type": "module",
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
   "bin": {
     "something": "./src/main.ts"
   },
@@ -16,6 +20,7 @@
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
-    "pagedjs-cli": "^0.4.3"
+    "pagedjs-cli": "^0.4.3",
+    "prettier": "^3.9.6"
   }
 }

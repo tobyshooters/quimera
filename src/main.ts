@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 import { preview } from "./serve.ts";
 import { exportPdf } from "./export.ts";
 import { cp } from "node:fs/promises";

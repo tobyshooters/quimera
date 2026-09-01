@@ -3,13 +3,14 @@
    reuses the same content and class names. */
 
 :root {
-  --font-body: Georgia, "Iowan Old Style", serif;
+  --font-body: Arial, "Iowan Old Style", serif;
   --font-size: 22pt;
 }
 
 @page {
   size: 108mm 108mm;   /* square */
   margin: 12mm;
+  background-color: goldenrod;
   @bottom-center { content: none; }
 }
 

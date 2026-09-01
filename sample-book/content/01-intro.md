@@ -19,6 +19,10 @@ aliquip ex ea commodo consequat.
 ![A caption for the image](images/example.svg)
 :::
 
+:::figure
+![](images/2026-08-31-19-23-20.png)
+:::
+
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore
 eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt
 in culpa qui officia deserunt mollit anim id est laborum. A citation for "a

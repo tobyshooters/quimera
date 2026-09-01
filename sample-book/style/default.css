@@ -1,7 +1,7 @@
 /* Global configurations */
 
 :root {
-  --font-body: Georgia, "Iowan Old Style", serif;
+  --font-body: monospace, "Iowan Old Style", serif;
   --font-size: 9pt;
 }
 
