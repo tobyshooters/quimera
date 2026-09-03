@@ -1,0 +1,65 @@
+/* Un coup de dés — web.
+
+   No pages: the eleven spreads become one vertical scroll. Each spread keeps
+   the exact same monospace character grid as print, so the constellations are
+   identical — only the pagination is gone. */
+
+@font-face {
+  font-family: "Agave";
+  src: url(./Agave-Bold.ttf) format("truetype");
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: "Agave";
+  src: url(./Agave-Regular.ttf) format("truetype");
+  font-weight: normal;
+}
+
+:root {
+  --cell: 13px;
+  --line: 1.125em;
+}
+
+body {
+  margin: 0;
+  padding: 4rem 1rem;
+  color: #111;
+  background: #fbfbf9;
+  font-family: "Agave", monospace;
+  font-weight: bold;
+  font-size: var(--cell);
+}
+
+/* Each spread is centered as a block; it never wraps, so on a narrow screen
+   it may scroll sideways rather than reflow — the grid is inviolable. */
+.spread {
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 3.5rem 0;
+  overflow-x: auto;
+}
+
+.spread + .spread {
+  border-top: 1px solid #e6e6e0;
+}
+
+.l {
+  white-space: pre;
+  line-height: var(--line);
+  height: var(--line);
+}
+
+.big {
+  font-size: 1.6em;
+}
+
+.mid {
+  font-size: 1.15em;
+  font-style: italic;
+}
+
+.it {
+  font-style: italic;
+}

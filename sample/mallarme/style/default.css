@@ -1,0 +1,69 @@
+/* Un coup de dés — print.
+
+   The whole poem lives on a monospace character grid: each `::l[...]` line
+   is `white-space: pre`, so the spaces typed in the markdown ARE the layout.
+   One `.spread` per printed page. */
+
+@font-face {
+  font-family: "Agave";
+  src: url(./Agave-Bold.ttf) format("truetype");
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: "Agave";
+  src: url(./Agave-Regular.ttf) format("truetype");
+  font-weight: normal;
+}
+
+:root {
+  /* One character cell = 0.5em wide (Agave is monospace) and one line is
+     2.25 cells tall — the aspect ratio of Mallarmé's original grid, so the
+     constellations keep their shape. */
+  --cell: 8pt;
+  --line: 1.125em;
+}
+
+@page {
+  size: letter;
+  margin: 90pt 72pt;
+}
+
+body {
+  margin: 0;
+  color: #000;
+  font-family: "Agave", monospace;
+  font-weight: bold;
+  font-size: var(--cell);
+}
+
+/* Each spread is its own page. */
+.spread {
+  break-before: page;
+}
+.spread:first-of-type {
+  break-before: avoid;
+}
+
+/* The grid line: literal spaces, no wrapping, fixed row height so the big
+   capitals rise out of the line without shoving the constellation around. */
+.l {
+  white-space: pre;
+  line-height: var(--line);
+  height: var(--line);
+}
+
+/* The four voices. Sizes are relative to the body, matching the ratios of
+   the source (roman body 12 · italic caps 14 · great capitals 20). */
+.big {
+  font-size: 1.6em;
+}
+
+.mid {
+  font-size: 1.15em;
+  font-style: italic;
+}
+
+.it {
+  font-style: italic;
+}
