@@ -254,7 +254,11 @@ async function loadContent(projectDir) {
   return chunks.join("\n\n");
 }
 
-export async function buildHtml(projectDir, variant) {
+// Run the markdown → HTML pipeline and return the body fragment plus the
+// resolved config and active stylesheet. Shared by every output target
+// (print HTML, static web, EPUB). With `xhtml`, void elements self-close so
+// the output is valid XHTML — EPUB content documents require it.
+export async function renderBody(projectDir, variant, { xhtml = false } = {}) {
   const config = resolveConfig(await loadConfig(projectDir), variant);
   const bib = await loadBib(join(projectDir, "refs.bib"));
   const directives = config.directives || {};
@@ -277,21 +281,36 @@ export async function buildHtml(projectDir, variant) {
   for (const p of config.rehypePlugins || []) {
     proc = proc.use(p);
   }
-  proc = proc.use(rehypeStringify);
+  proc = proc.use(
+    rehypeStringify,
+    xhtml ? { closeSelfClosing: true, tightSelfClosing: true } : {},
+  );
 
   // The active stylesheet, named in config (`css`) and overridable per
   // variant. Drives both the <link> and the knuth_pratt_via_pretext column-width read.
   const styleSheet = config.css || "default.css";
-
   const body = String(await proc.process(md));
+  return { body, config, styleSheet };
+}
+
+// A reflowable target (static web or EPUB content) — no paged.js pagination,
+// no @page geometry. Both share the same render path; only packaging differs.
+function isReflowable(config) {
+  return Boolean(config.web || config.epub);
+}
+
+export async function buildHtml(projectDir, variant) {
+  const { body, config, styleSheet } = await renderBody(projectDir, variant);
+  const reflow = isReflowable(config);
+
   const shell = await readFile(join(TOOL_DIR, "template.html"), "utf8");
   let html = shell
     .replace("<!--BODY-->", body)
     .replace('href="style.css"', `href="${STYLE_DIR}/${styleSheet}"`);
 
-  // A `web` variant renders a plain, flowing static page — no paged.js
-  // pagination. Everything else (including pretext) stays orthogonal.
-  if (config.web) {
+  // A reflowable variant (web/epub) renders a plain, flowing page — no
+  // paged.js pagination. Everything else (including pretext) stays orthogonal.
+  if (reflow) {
     html = html
       .replace("<!--PAGEDJS-->", "")
       // Drop the print-only preview chrome + outer-margin handler, whose
@@ -311,7 +330,7 @@ export async function buildHtml(projectDir, variant) {
     // so bake in the column width from the stylesheet's @page rules; fall back
     // to A5 with default margins (93 mm).
     let colWidthPx = 0;
-    if (!config.web) {
+    if (!reflow) {
       const styleCssPath = join(projectDir, STYLE_DIR, styleSheet);
       let colWidthMm: number | null = null;
       if (existsSync(styleCssPath)) {
@@ -321,7 +340,7 @@ export async function buildHtml(projectDir, variant) {
       if (colWidthMm === null) colWidthMm = 93;
       colWidthPx = colWidthMm * (96 / 25.4);
     }
-    html = html.replace("<!--PRETEXT-->", await pretextScript(colWidthPx, config.web));
+    html = html.replace("<!--PRETEXT-->", await pretextScript(colWidthPx, reflow));
   } else {
     html = html.replace("<!--PRETEXT-->", "");
   }

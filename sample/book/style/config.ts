@@ -22,6 +22,14 @@ export default {
       web: true,
       css: "web.css",
     },
+
+    // EPUB: reflowable, packaged as a .epub. No pretext — readers
+    // reflow at will, so baked-in line breaks would be wrong.
+    epub: {
+      epub: true,
+      css: "epub.css",
+      knuth_pratt_via_pretext: false,
+    },
   },
 
   // Extension to markdown syntax

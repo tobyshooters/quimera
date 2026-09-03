@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { buildHtml, variantConfig, STYLE_DIR } from "./compile.ts";
+import { buildEpub } from "./epub.ts";
 import { preview } from "./preview.ts";
 import { cp, copyFile, writeFile, unlink, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -83,6 +84,14 @@ async function exportWeb(projectDir, variant) {
   console.log(`wrote ${join(outputDir, "index.html")}`);
 }
 
+async function exportEpub(projectDir, variant) {
+  const outputDir = join(projectDir, "output");
+  await mkdir(outputDir, { recursive: true });
+  const out = join(outputDir, variant ? `book-${variant}.epub` : "book.epub");
+  await buildEpub(projectDir, variant, out);
+  console.log(`wrote ${out}`);
+}
+
 async function init(projectDir) {
   if (existsSync(projectDir)) {
     console.error(`${projectDir} already exists — refusing to overwrite`);
@@ -107,13 +116,17 @@ switch (cmd) {
   case "preview":
     await preview(abs, variant);
     break;
-  case "export":
-    if ((await variantConfig(abs, variant)).web) {
+  case "export": {
+    const config = await variantConfig(abs, variant);
+    if (config.epub) {
+      await exportEpub(abs, variant);
+    } else if (config.web) {
       await exportWeb(abs, variant);
     } else {
       await exportPdf(abs, variant);
     }
     break;
+  }
   case "init":
     await init(abs);
     break;

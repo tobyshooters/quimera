@@ -1,0 +1,101 @@
+/* EPUB output: reflowable, reader-controlled. No fixed widths or floats —
+   readers resize the viewport and font at will, so we only set rhythm and
+   let everything flow. Margin notes become indented asides. */
+
+@font-face {
+  font-family: "Agave";
+  src: url(./Agave-Regular.ttf) format("truetype");
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: "Agave";
+  src: url(./Agave-Bold.ttf) format("truetype");
+  font-weight: bold;
+}
+
+body {
+  font-family: "Agave", monospace, serif;
+  line-height: 1.5;
+  margin: 0 5%;
+}
+
+p {
+  text-align: justify;
+  hyphens: auto;
+  margin: 0 0 1em;
+}
+
+.cover {
+  margin: 2em 0 3em;
+}
+
+.cover h1 {
+  font-size: 1.8em;
+}
+
+.cover h2 {
+  font-weight: normal;
+  color: #555;
+}
+
+h1 {
+  margin-top: 2em;
+  font-size: 1.5em;
+}
+
+h2 {
+  margin-top: 1.5em;
+  font-size: 1.2em;
+}
+
+.pagebreak {
+  page-break-after: always;
+}
+
+blockquote {
+  margin: 1.5em 1em;
+  font-style: italic;
+  color: #444;
+}
+
+figure {
+  margin: 1.5em 0;
+  text-align: center;
+}
+
+figure img {
+  max-width: 100%;
+}
+
+figcaption {
+  font-size: 0.85em;
+  color: #666;
+}
+
+.margin {
+  display: block;
+  margin: 0.5em 0 0.5em 1.5em;
+  padding-left: 1em;
+  border-left: 2px solid #ddd;
+  font-size: 0.85em;
+  color: #555;
+}
+
+.cite {
+  text-decoration: none;
+}
+
+.bibliography {
+  margin-top: 3em;
+  font-size: 0.9em;
+}
+
+.bibliography ul {
+  list-style: none;
+  padding: 0;
+}
+
+.bibliography li {
+  margin-bottom: 0.5em;
+}
