@@ -27,7 +27,6 @@ extension surface, and design rationale.
 
 ```
 ├── book.md ------------- The *shared* source of the book
-├── config.ts ----------- Directives, plugins, and variant definitions
 ├── refs.bib
 ├── content
 │   ├── 01_intro.md
@@ -35,7 +34,9 @@ extension surface, and design rationale.
 │   ├── example.svg
 │   └── screenshot.png
 │
-├── style --------------- Specify visual/typographical variantes
+├── config.ts ----------- Directives, plugins, and variant definitions
+│
+├── style --------------- Visual/typographical definitions, used in config
 │   ├── Agave-Bold.ttf
 │   ├── Agave-Regular.ttf
 │   ├── print.css
