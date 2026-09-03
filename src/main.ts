@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { buildHtml, variantConfig, STYLE_DIR } from "./compile.ts";
+import { buildHtml, variantConfig, bookBaseName, STYLE_DIR } from "./compile.ts";
 import { buildEpub } from "./epub.ts";
 import { preview } from "./preview.ts";
 import { cp, copyFile, writeFile, unlink, mkdir } from "node:fs/promises";
@@ -33,7 +33,8 @@ async function exportPdf(projectDir, variant) {
 
   const outputDir = join(projectDir, "output");
   await mkdir(outputDir, { recursive: true });
-  const outputPdf = join(outputDir, variant ? `book-${variant}.pdf` : "book.pdf");
+  const base = await bookBaseName(projectDir);
+  const outputPdf = join(outputDir, variant ? `${base}-${variant}.pdf` : `${base}.pdf`);
   const proc = Bun.spawn(["bunx", "pagedjs-cli", "-o", outputPdf, htmlPath], {
     stdio: ["inherit", "inherit", "inherit"],
   });
@@ -87,7 +88,8 @@ async function exportWeb(projectDir, variant) {
 async function exportEpub(projectDir, variant) {
   const outputDir = join(projectDir, "output");
   await mkdir(outputDir, { recursive: true });
-  const out = join(outputDir, variant ? `book-${variant}.epub` : "book.epub");
+  const base = await bookBaseName(projectDir);
+  const out = join(outputDir, variant ? `${base}-${variant}.epub` : `${base}.epub`);
   await buildEpub(projectDir, variant, out);
   console.log(`wrote ${out}`);
 }

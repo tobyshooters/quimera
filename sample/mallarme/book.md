@@ -1,3 +1,7 @@
+---
+title: Mallarmé
+---
+
 :::spread
 ::l[]
 ::l[]

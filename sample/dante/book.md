@@ -1,3 +1,7 @@
+---
+title: Dante
+---
+
 :::cover
 # Inferno
 

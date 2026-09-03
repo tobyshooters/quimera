@@ -1,3 +1,7 @@
+---
+title: Book
+---
+
 :::cover
 # This is the title of the work
 

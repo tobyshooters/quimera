@@ -16,7 +16,7 @@
 //   (plain)     the roman body
 
 export default {
-  css: "default.css",
+  css: "print.css",
 
   variants: {
     // Paginated print — one <section class="spread"> per page.

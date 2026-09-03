@@ -13,7 +13,7 @@ import { citations, loadBib, defaultFormatCitation } from "./citations.ts";
 
 const TOOL_DIR = new URL(".", import.meta.url).pathname;
 
-// Stylesheets and config.ts live under <project>/style/.
+// Stylesheets live under <project>/style/; config.ts sits at the project root.
 export const STYLE_DIR = "style";
 
 // CSS page size name → [width, height] in mm
@@ -161,7 +161,7 @@ function directivesToHast(registry) {
 
 async function loadConfig(projectDir) {
   for (const name of ["config.ts", "config.js"]) {
-    const path = join(projectDir, STYLE_DIR, name);
+    const path = join(projectDir, name);
     if (existsSync(path)) {
       const mod = await import(`${path}?t=${Date.now()}`);
       return mod.default || {};
@@ -218,6 +218,46 @@ function rewriteAssetPaths(md, fileDir, projectDir) {
     );
 }
 
+// Split a leading YAML front-matter block (--- … ---) off the markdown,
+// parsing it into a flat key→value map. Only simple `key: value` scalars —
+// enough for `title:`. No block → empty map, whole input as body.
+function parseFrontMatter(md) {
+  const m = md.match(/^---\n([\s\S]*?)\n---\n?/);
+  if (!m) {
+    return { meta: {}, body: md };
+  }
+  const meta = {};
+  for (const line of m[1].split("\n")) {
+    const kv = line.match(/^([\w-]+)\s*:\s*(.*)$/);
+    if (kv) {
+      meta[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, "");
+    }
+  }
+  return { meta, body: md.slice(m[0].length) };
+}
+
+// The book's front-matter (title, …), or empty if there's no book.md.
+async function bookMeta(projectDir) {
+  const bookPath = join(projectDir, "book.md");
+  if (!existsSync(bookPath)) {
+    return {};
+  }
+  return parseFrontMatter(await readFile(bookPath, "utf8")).meta;
+}
+
+// Slug of the book's title, for naming output files. Diacritics stripped;
+// falls back to "book" when there's no usable title.
+export async function bookBaseName(projectDir) {
+  const { title } = await bookMeta(projectDir);
+  const slug = (title || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || "book";
+}
+
 // Assemble the book's markdown. A `book.md` at the project root defines
 // the reading order via `!include <path>` lines, each resolved relative to
 // the project dir. Non-include lines pass through, so book.md can also hold
@@ -226,7 +266,7 @@ function rewriteAssetPaths(md, fileDir, projectDir) {
 async function loadContent(projectDir) {
   const bookPath = join(projectDir, "book.md");
   if (existsSync(bookPath)) {
-    const master = await readFile(bookPath, "utf8");
+    const { body: master } = parseFrontMatter(await readFile(bookPath, "utf8"));
     const out = [];
     for (const line of master.split("\n")) {
       const m = line.match(/^\s*!include\s+(.+?)\s*$/);

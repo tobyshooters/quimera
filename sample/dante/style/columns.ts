@@ -18,7 +18,7 @@
 
 const SPREAD = 8;
 
-function zipVerses() {
+export function zipColumns() {
   const langs = ["italian", "english", "portuguese"];
 
   // Inline children with each newline turned into a <br>.
@@ -82,12 +82,3 @@ function zipVerses() {
     tree.children.splice(anchor, 0, ...spreads);
   };
 }
-
-export default {
-  css: "default.css",
-  knuth_pratt_via_pretext: false,
-  remarkPlugins: [zipVerses],
-  directives: {
-    cover: { tag: "section", class: "cover" },
-  },
-};

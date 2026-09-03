@@ -1,7 +1,7 @@
 export default {
 
   // Base stylesheet, which variants overwrite.
-  css: "default.css",
+  css: "print.css",
 
   variants: {
     print: {},
