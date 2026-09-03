@@ -1,6 +1,8 @@
 # Quimera
 
-Bookmaker CLI that converts bundles of Markdown into a multi-format book.
+Not Nothing's bookmaker.
+
+Converts bundles of markdown and assets into a multi-format book.
 
 ```
 bun install
@@ -24,7 +26,7 @@ See `sample/book/` for a working project and `docs/plan.md` for the pipeline,
 extension surface, and design rationale.
 
 ```
-├── book.md              The source of the book
+├── book.md ------------- The *shared* source of the book
 ├── refs.bib
 ├── content
 │   ├── 01_intro.md
@@ -32,28 +34,29 @@ extension surface, and design rationale.
 │   ├── example.svg
 │   └── screenshot.png
 │
-├── output               Sample outputs: PDFs, ePub, website
-│   ├── book.pdf
-│   ├── book-a4.pdf
-│   ├── book-instagram.pdf
-│   ├── book-epub.epub
-│   └── web
-│       ├── index.html
-│       ├── content
-│       │   ├── example.svg
-│       │   └── screenshot.png
-│       └── style
-│           ├── Agave-Bold.ttf
-│           ├── Agave-Regular.ttf
-│           └── web.css
+├── style --------------- Specify visual/typographical variantes
+│   ├── config.ts
+│   ├── Agave-Bold.ttf
+│   ├── Agave-Regular.ttf
+│   ├── default.css
+│   ├── web.css
+│   ├── epub.css
+│   ├── a4.css
+│   └── instagram.css
 │
-└── style                How the sample outputs are produced
-    ├── config.ts
-    ├── Agave-Bold.ttf
-    ├── Agave-Regular.ttf
-    ├── default.css
-    ├── web.css
-    ├── epub.css
-    ├── a4.css
-    └── instagram.css
+└─── output ------------- Multi-format outputs: PDFs, ePub, website
+    ├── book.pdf
+    ├── book-a4.pdf
+    ├── book-instagram.pdf
+    ├── book-epub.epub
+    └── web
+        ├── index.html
+        ├── content
+        │   ├── example.svg
+        │   └── screenshot.png
+        └── style
+            ├── Agave-Bold.ttf
+            ├── Agave-Regular.ttf
+            └── web.css
+ 
 ```
