@@ -20,12 +20,12 @@
   /* One character cell = 0.5em wide (Agave is monospace) and one line is
      2.25 cells tall — the aspect ratio of Mallarmé's original grid, so the
      constellations keep their shape. */
-  --cell: 6pt;
-  --line: 1.125em;
+  --cell: 8pt;
+  --line: 1em;
 }
 
 @page {
-  size: A5;
+  size: A5 landscape;
   margin: 90pt 72pt;
 }
 
