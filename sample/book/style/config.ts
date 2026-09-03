@@ -15,6 +15,13 @@ export default {
       css: "instagram.css",
       knuth_pratt_via_pretext: false
     },
+
+    // Static website: one flowing column, no pages, no paged.js.
+    // Pretext still applies — it measures the live column width at runtime.
+    web: {
+      web: true,
+      css: "web.css",
+    },
   },
 
   // Extension to markdown syntax

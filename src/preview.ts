@@ -162,7 +162,7 @@ async function serveFile(path) {
   });
 }
 
-export async function preview(projectDir) {
+export async function preview(projectDir, initialVariant) {
   const clients = new Set();
 
   const notify = debounce(() => {
@@ -193,7 +193,7 @@ export async function preview(projectDir) {
         return new Response("upgrade failed", { status: 400 });
       }
       if (url.pathname === "/" || url.pathname === "/index.html") {
-        const variant = url.searchParams.get("variant") || undefined;
+        const variant = url.searchParams.get("variant") || initialVariant || undefined;
         const html = await buildHtml(projectDir, variant);
         const names = await variantNames(projectDir);
         const current = variant && names.includes(variant) ? variant : names[0];

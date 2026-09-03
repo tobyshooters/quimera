@@ -226,6 +226,18 @@ column-width detection. Geometry and type stay in CSS where they
 belong; the variant just points at a different sheet. See
 `sample-book/instagram.css`.
 
+A variant may also set `web: true` for **static-website output** — one
+flowing document instead of paged print. The markdown → HTML compile is
+identical; `web` only (a) omits the paged.js polyfill and the print-only
+preview chrome / outer-margin handler, and (b) makes `export` write a
+static `output/<variant>/index.html` plus the asset dirs it references
+(`style/`, `content/`, `images/`) rather than running `pagedjs-cli`.
+Pretext stays orthogonal: with `knuth_pratt_via_pretext` on, web output
+still gets optimal justification, but measures each paragraph's live
+column width at runtime (there's no `@page` to read, and the DOM is
+already laid out) instead of using the baked-in `COL_WIDTH`. See
+`sample-book/web.css`.
+
 ### `preview.ts` — preview
 
 - Bun HTTP server on `localhost:4000`.

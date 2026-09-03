@@ -118,13 +118,15 @@ function computeColWidthMm(css: string): number | null {
 }
 
 // Bundle pretext-polyfill.ts and inject COL_WIDTH, returning an inline <script>.
-async function pretextScript(colWidthPx: number): Promise<string> {
+// In `measure` mode (web output) pretext ignores COL_WIDTH and measures each
+// paragraph's rendered width instead, since the DOM is already laid out.
+async function pretextScript(colWidthPx: number, measure = false): Promise<string> {
   const entry = resolve(join(TOOL_DIR, "pretext-polyfill.ts"));
   const result = await Bun.build({
     entrypoints: [entry],
     target: "browser",
     minify: true,
-    define: { COL_WIDTH: colWidthPx.toFixed(2) },
+    define: { COL_WIDTH: colWidthPx.toFixed(2), MEASURE_WIDTH: String(measure) },
   });
   if (!result.success) {
     throw new AggregateError(result.logs, "pretext-polyfill bundle failed");
@@ -172,6 +174,12 @@ async function loadConfig(projectDir) {
 export async function variantNames(projectDir) {
   const config = await loadConfig(projectDir);
   return config.variants ? Object.keys(config.variants) : [];
+}
+
+// The resolved config for a variant, so callers (e.g. export) can inspect
+// flags like `web` before deciding how to render.
+export async function variantConfig(projectDir, variant) {
+  return resolveConfig(await loadConfig(projectDir), variant);
 }
 
 // Merge the chosen variant over the shared base; `variants` never reaches
@@ -281,17 +289,39 @@ export async function buildHtml(projectDir, variant) {
     .replace("<!--BODY-->", body)
     .replace('href="style.css"', `href="${STYLE_DIR}/${styleSheet}"`);
 
+  // A `web` variant renders a plain, flowing static page — no paged.js
+  // pagination. Everything else (including pretext) stays orthogonal.
+  if (config.web) {
+    html = html
+      .replace("<!--PAGEDJS-->", "")
+      // Drop the print-only preview chrome + outer-margin handler, whose
+      // screen styles (e.g. body background) would otherwise clobber the
+      // web stylesheet.
+      .replace(/<!--PRINT-ONLY-START-->[\s\S]*?<!--PRINT-ONLY-END-->/, "");
+  } else {
+    html = html.replace(
+      "<!--PAGEDJS-->",
+      '<script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>',
+    );
+  }
+
   if (config.knuth_pratt_via_pretext) {
-    // Compute column width from the active stylesheet; fall back to A5 with default margins (93 mm).
-    const styleCssPath = join(projectDir, STYLE_DIR, styleSheet);
-    let colWidthMm: number | null = null;
-    if (existsSync(styleCssPath)) {
-      const userCss = await readFile(styleCssPath, "utf8");
-      colWidthMm = computeColWidthMm(userCss);
+    // Web pretext measures each paragraph at runtime, so no column width is
+    // needed. Print pretext runs before pagination and can't measure the DOM,
+    // so bake in the column width from the stylesheet's @page rules; fall back
+    // to A5 with default margins (93 mm).
+    let colWidthPx = 0;
+    if (!config.web) {
+      const styleCssPath = join(projectDir, STYLE_DIR, styleSheet);
+      let colWidthMm: number | null = null;
+      if (existsSync(styleCssPath)) {
+        const userCss = await readFile(styleCssPath, "utf8");
+        colWidthMm = computeColWidthMm(userCss);
+      }
+      if (colWidthMm === null) colWidthMm = 93;
+      colWidthPx = colWidthMm * (96 / 25.4);
     }
-    if (colWidthMm === null) colWidthMm = 93; // A5 with default margins
-    const colWidthPx = colWidthMm * (96 / 25.4);
-    html = html.replace("<!--PRETEXT-->", await pretextScript(colWidthPx));
+    html = html.replace("<!--PRETEXT-->", await pretextScript(colWidthPx, config.web));
   } else {
     html = html.replace("<!--PRETEXT-->", "");
   }

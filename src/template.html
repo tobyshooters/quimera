@@ -6,11 +6,12 @@
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="style.css" />
 
+    <!--PRINT-ONLY-START-->
     <!--
-  Preview chrome. Kept out of style.css so paged.js's Polisher
-  doesn't strip it while processing the print stylesheet. paged.js
-  ignores <style media="screen">.
-  -->
+    Preview chrome. Kept out of style.css so paged.js's Polisher doesn't strip
+    it while processing the print stylesheet. paged.js ignores <style
+    media="screen">.
+    -->
     <style media="screen">
       body {
         background: #f0f0f0;
@@ -33,10 +34,9 @@
       .pagedjs_right_page {
         margin-left: 0;
       }
-      /* Page 1 is a recto; reserve a page-sized phantom slot to its
-       left so it sits alone on the right, and pages 2/3, 4/5, ...
-       wrap into real verso/recto spreads.
-       Width defaults to A5; override with --preview-page-width. */
+      /* Page 1 is a recto; reserve a page-sized phantom slot to its left so it
+         sits alone on the right, and pages 2/3, 4/5, ... wrap into real verso
+         recto spreads. Width defaults to A5; override w/ --preview-page-width. */
       .pagedjs_pages::before {
         content: "";
         width: var(--preview-page-width, 148mm);
@@ -48,7 +48,7 @@
     paged.js strips selectors targeting .pagedjs_left_page /
     .pagedjs_right_page out of user stylesheets, so we do the
     left/right swap in JS instead. Works in preview AND export.
-  -->
+    -->
     <script>
       window.PagedConfig = {
         before() {
@@ -68,8 +68,10 @@
         },
       };
     </script>
+    <!--PRINT-ONLY-END-->
+
     <!--PRETEXT-->
-    <script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
+    <!--PAGEDJS-->
   </head>
 
   <body>

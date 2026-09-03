@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { buildHtml, STYLE_DIR } from "./compile.ts";
+import { buildHtml, variantConfig, STYLE_DIR } from "./compile.ts";
 import { preview } from "./preview.ts";
 import { cp, copyFile, writeFile, unlink, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -49,6 +49,40 @@ async function exportPdf(projectDir, variant) {
   console.log(`wrote ${outputPdf}`);
 }
 
+// A `web` variant is a static site, not a PDF: write index.html and copy the
+// asset dirs it references (style/, plus content/ and images/ if present) so
+// the relative paths in the HTML resolve when served or opened directly.
+// Only ship rendered assets — the active stylesheet, fonts, images — never the
+// sources (`.md`, `config.ts`) or the other variants' stylesheets.
+async function exportWeb(projectDir, variant) {
+  const config = await variantConfig(projectDir, variant);
+  const activeCss = config.css || "default.css";
+  const html = await buildHtml(projectDir, variant);
+
+  const outputDir = join(projectDir, "output", variant || "web");
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(join(outputDir, "index.html"), html);
+
+  // Copy filter: keep directories (so cp recurses) and rendered assets; drop
+  // markdown/config sources and any stylesheet other than the active one.
+  const keep = (src) => {
+    const name = src.split("/").pop() || "";
+    const ext = name.includes(".") ? name.slice(name.lastIndexOf(".")).toLowerCase() : "";
+    if ([".md", ".ts", ".js"].includes(ext)) return false;
+    if (ext === ".css") return name === activeCss;
+    return true;
+  };
+
+  for (const dir of [STYLE_DIR, "content", "images"]) {
+    const src = join(projectDir, dir);
+    if (existsSync(src)) {
+      await cp(src, join(outputDir, dir), { recursive: true, filter: keep });
+    }
+  }
+
+  console.log(`wrote ${join(outputDir, "index.html")}`);
+}
+
 async function init(projectDir) {
   if (existsSync(projectDir)) {
     console.error(`${projectDir} already exists — refusing to overwrite`);
@@ -71,10 +105,14 @@ const abs = resolve(dir);
 
 switch (cmd) {
   case "preview":
-    await preview(abs);
+    await preview(abs, variant);
     break;
   case "export":
-    await exportPdf(abs, variant);
+    if ((await variantConfig(abs, variant)).web) {
+      await exportWeb(abs, variant);
+    } else {
+      await exportPdf(abs, variant);
+    }
     break;
   case "init":
     await init(abs);

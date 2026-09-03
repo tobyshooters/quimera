@@ -2,7 +2,18 @@
 // Injected into the HTML and run in PagedConfig.before (before paged.js paginates).
 // COL_WIDTH is replaced at inject time with the computed column width in CSS px.
 
+// COL_WIDTH is the page column width in CSS px, baked in for print output:
+// pretext runs before paged.js paginates, so the DOM can't be measured then.
+// MEASURE_WIDTH is set for web output, where there's no pagination and each
+// paragraph already sits at its final width — so we measure it directly.
 declare const COL_WIDTH: number;
+declare const MEASURE_WIDTH: boolean;
+
+// A paragraph's usable content width in CSS px (client width minus padding).
+function contentWidth(el: HTMLElement): number {
+  const cs = getComputedStyle(el);
+  return el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+}
 
 const HUGE = 1e8;
 const RIVER_THRESHOLD = 1.5;
@@ -106,9 +117,12 @@ function run() {
     const text = el.textContent?.trim() ?? "";
     if (!text) continue;
 
+    const maxWidth = MEASURE_WIDTH ? contentWidth(el) : COL_WIDTH;
+    if (!(maxWidth > 0)) continue;
+
     const words = text.split(/\s+/);
     const widths = words.map((w) => ctx.measureText(w).width);
-    const lines = layoutOptimal(words, widths, COL_WIDTH, normalSpace);
+    const lines = layoutOptimal(words, widths, maxWidth, normalSpace);
     if (!lines) continue;
 
     el.innerHTML = "";
@@ -119,8 +133,8 @@ function run() {
       span.style.breakInside = "avoid";
       if (!line.isLast && line.spaceCount > 0) {
         const natural = line.wordWidth + line.spaceCount * normalSpace;
-        if (natural >= COL_WIDTH * SHORT_LINE_RATIO) {
-          const sp = (COL_WIDTH - line.wordWidth) / line.spaceCount;
+        if (natural >= maxWidth * SHORT_LINE_RATIO) {
+          const sp = (maxWidth - line.wordWidth) / line.spaceCount;
           span.style.wordSpacing = `${sp - normalSpace}px`;
         }
       }
@@ -130,10 +144,25 @@ function run() {
   }
 }
 
-const orig = (window as any).PagedConfig?.before;
-(window as any).PagedConfig = (window as any).PagedConfig ?? {};
-(window as any).PagedConfig.before = async function (this: unknown) {
-  if (orig) await orig.call(this);
-  await document.fonts.ready;
-  run();
-};
+if (MEASURE_WIDTH) {
+  // Web output: no paged.js to call PagedConfig.before, so run once the
+  // layout is settled and the print font is ready.
+  const start = async () => {
+    await document.fonts.ready;
+    run();
+  };
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else {
+    void start();
+  }
+} else {
+  // Print output: run inside paged.js's before-hook, ahead of pagination.
+  const orig = (window as any).PagedConfig?.before;
+  (window as any).PagedConfig = (window as any).PagedConfig ?? {};
+  (window as any).PagedConfig.before = async function (this: unknown) {
+    if (orig) await orig.call(this);
+    await document.fonts.ready;
+    run();
+  };
+}
