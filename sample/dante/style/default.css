@@ -15,9 +15,6 @@
 @page {
   size: A5;
   margin: 2.0cm 1.0cm;
-  @bottom-center {
-    content: counter(page);
-  }
 }
 
 body {
@@ -28,8 +25,9 @@ body {
 }
 
 .cover {
-  font-size: var(--font-size-cover);
   page: cover;
+
+  font-size: var(--font-size-cover);
   break-before: right;
   break-after: page;
   height: 100%;
@@ -40,15 +38,23 @@ body {
   text-align: center;
 }
 
-/* Remove page number from cover */
-@page cover {
-  @bottom-center { content: none; }
+.verso {
+  page: verso;
+  break-before: left;
 }
 
-/* The facing pages */
+@page verso {
+  @bottom-left { content: counter(page); }
+}
 
-.verso { break-before: left; }
-.recto { break-before: right; }
+.recto {
+  page: recto;
+  break-before: right;
+}
+
+@page recto {
+  @bottom-right { content: counter(page); }
+}
 
 .verses {
   width: 100%;
