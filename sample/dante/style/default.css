@@ -1,0 +1,74 @@
+/* Dante across book spreads, aligned tercet by tercet.
+
+   Each spread is a verso + recto. The verso (left page) carries the
+   Italian in one column; the recto (right page) carries the English
+   and Portuguese in two. Every tercet gets a fixed-height row on both
+   pages, so verse N sits at the same height across the open book. */
+
+:root {
+  --font-body: Georgia, "Times New Roman", serif;
+  --font-size-cover: 12pt;
+  --font-size: 8pt;
+  --slot: 18mm;
+}
+
+@page {
+  size: A5;
+  margin: 2.0cm 1.0cm;
+  @bottom-center {
+    content: counter(page);
+  }
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--font-size);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cover {
+  font-size: var(--font-size-cover);
+  page: cover;
+  break-before: right;
+  break-after: page;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+/* Remove page number from cover */
+@page cover {
+  @bottom-center { content: none; }
+}
+
+/* The facing pages */
+
+.verso { break-before: left; }
+.recto { break-before: right; }
+
+.verses {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.verses thead { display: none; }
+
+.verses tr {
+  height: var(--slot);
+  break-inside: avoid;
+}
+
+.verses td {
+  vertical-align: top;
+  padding: 0 0.6em 0 0;
+  overflow: hidden;
+}
+
+.verso td { font-style: italic; }
+
+.recto td { width: 50%; }
