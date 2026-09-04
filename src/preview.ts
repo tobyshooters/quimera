@@ -4,8 +4,6 @@ import { readFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, extname } from "node:path";
 
-const TOOL_DIR = new URL(".", import.meta.url).pathname;
-
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -203,18 +201,13 @@ export async function preview(projectDir, initialVariant) {
           headers: { "Content-Type": "text/html; charset=utf-8" },
         });
       }
-      // Project files first (style.css, images/*, etc.). If the project
-      // has no style.css, fall back to the tool's template.css so bare
-      // projects still render styled.
+      // Project files: style/*.css, images/*, etc.
       const fromProject = await serveFile(join(projectDir, url.pathname));
       if (fromProject) {
         return fromProject;
       }
-      if (url.pathname === "/style/default.css") {
-        const fromTool = await serveFile(join(TOOL_DIR, "template.css"));
-        if (fromTool) {
-          return fromTool;
-        }
+      if (url.pathname.startsWith("/style/") && url.pathname.endsWith(".css")) {
+        console.warn(`warning: no ${url.pathname.slice(1)} — preview will be unstyled`);
       }
       return new Response("not found", { status: 404 });
     },

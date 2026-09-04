@@ -1,0 +1,80 @@
+/* Shared foundation. Each variant @imports this and overrides only what
+   differs — so a variant stylesheet reads as a diff against this baseline. */
+
+/* Libre Baskerville (OFL, see baskerville/OFL.txt). Two variable fonts cover
+   the whole weight range; swap the family below to use your own. */
+@font-face {
+  font-family: "Libre Baskerville";
+  src: url("./baskerville/LibreBaskerville-VariableFont_wght.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Libre Baskerville";
+  src: url("./baskerville/LibreBaskerville-Italic-VariableFont_wght.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: italic;
+}
+
+body {
+  font-family: "Libre Baskerville", Georgia, serif;
+  line-height: 1.5;
+}
+
+p {
+  text-align: justify;
+  hyphens: auto;
+  margin: 0 0 1em;
+}
+
+h1 {
+  font-size: 1.6em;
+}
+h2 {
+  margin-top: 1.5em;
+  font-size: 1.2em;
+}
+
+blockquote {
+  margin: 1.5em 1em;
+  font-style: italic;
+  color: #444;
+}
+
+figure {
+  margin: 1.5em 0;
+  text-align: center;
+}
+figure img {
+  max-width: 100%;
+}
+figcaption {
+  font-size: 0.85em;
+  color: #666;
+}
+
+.cover h1 {
+  font-size: 1.8em;
+}
+
+.margin {
+  display: block;
+  font-size: 0.85em;
+  color: #555;
+}
+
+.cite {
+  text-decoration: none;
+  color: inherit;
+}
+.bibliography {
+  font-size: 0.9em;
+}
+.bibliography ul {
+  list-style: none;
+  padding: 0;
+}
+.bibliography li {
+  margin-bottom: 0.5em;
+}

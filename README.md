@@ -8,7 +8,7 @@ Converts bundles of markdown and assets into a multi-format book.
 bun install
 bun link
 
-quimera init    <dir>         # scaffold a new book from sample-book/
+quimera init    <dir>         # scaffold a new book from sample/template/
 quimera preview <dir>         # live-reloading preview at localhost:4000
 quimera export  <dir>  <var>  # write <dir>/output/book-<var>.<txt>
 ```

@@ -12,7 +12,7 @@ md → unified/remark → html → paged.js → chromium print → pdf
 Three commands:
 
 ```
-quimera init    <dir>   # scaffold a new book from sample-book/
+quimera init    <dir>   # scaffold a new book from sample/template/
 quimera preview <dir>   # live-reloading preview at localhost:4000
 quimera export  <dir>   # write <dir>/book.pdf via pagedjs-cli
 ```

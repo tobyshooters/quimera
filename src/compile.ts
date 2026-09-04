@@ -16,6 +16,32 @@ const TOOL_DIR = new URL(".", import.meta.url).pathname;
 // Stylesheets live under <project>/style/; config.ts sits at the project root.
 export const STYLE_DIR = "style";
 
+// The active sheet plus every sheet it pulls in via `@import`, so export paths
+// ship the whole chain, not just the entry. Names are relative to STYLE_DIR;
+// only same-directory imports are followed. Missing sheets are skipped.
+export async function styleSheetChain(projectDir, styleSheet) {
+  const chain: string[] = [];
+  const seen = new Set<string>();
+  const queue = [styleSheet];
+  while (queue.length) {
+    const name = queue.shift()!;
+    if (seen.has(name)) {
+      continue;
+    }
+    seen.add(name);
+    const path = join(projectDir, STYLE_DIR, name);
+    if (!existsSync(path)) {
+      continue;
+    }
+    chain.push(name);
+    const css = await readFile(path, "utf8");
+    for (const m of css.matchAll(/@import\s+(?:url\()?["']([^"')]+)["']\)?/g)) {
+      queue.push(m[1].replace(/^\.\//, ""));
+    }
+  }
+  return chain;
+}
+
 // CSS page size name → [width, height] in mm
 const PAGE_SIZES: Record<string, [number, number]> = {
   a3: [297, 420],
@@ -138,7 +164,7 @@ async function pretextScript(colWidthPx: number, measure = false): Promise<strin
 // Turn container/leaf/text directives into HTML elements per the registry.
 // `:margin[hi]` → `<aside class="margin">hi</aside>`.
 // The tool ships no defaults — the registry comes entirely from the
-// user's quimera.config.ts. See sample-book for an example.
+// user's quimera.config.ts. See sample/book for an example.
 function directivesToHast(registry) {
   return (tree) => {
     visit(tree, (node) => {
@@ -204,7 +230,11 @@ function rewriteAssetPaths(md, fileDir, projectDir) {
     return md;
   }
   const isRelative = (url) =>
-    url && !isAbsolute(url) && !/^[a-z][a-z0-9+.-]*:/i.test(url) && !url.startsWith("/") && !url.startsWith("#");
+    url &&
+    !isAbsolute(url) &&
+    !/^[a-z][a-z0-9+.-]*:/i.test(url) &&
+    !url.startsWith("/") &&
+    !url.startsWith("#");
   const rebase = (url) => {
     const clean = url.replace(/^\.\//, "");
     return `${prefix}/${clean}`;
@@ -321,10 +351,7 @@ export async function renderBody(projectDir, variant, { xhtml = false } = {}) {
   for (const p of config.rehypePlugins || []) {
     proc = proc.use(p);
   }
-  proc = proc.use(
-    rehypeStringify,
-    xhtml ? { closeSelfClosing: true, tightSelfClosing: true } : {},
-  );
+  proc = proc.use(rehypeStringify, xhtml ? { closeSelfClosing: true, tightSelfClosing: true } : {});
 
   // The active stylesheet, named in config (`css`) and overridable per
   // variant. Drives both the <link> and the knuth_pratt_via_pretext column-width read.
@@ -344,9 +371,13 @@ export async function buildHtml(projectDir, variant) {
   const reflow = isReflowable(config);
 
   const shell = await readFile(join(TOOL_DIR, "template.html"), "utf8");
-  let html = shell
-    .replace("<!--BODY-->", body)
-    .replace('href="style.css"', `href="${STYLE_DIR}/${styleSheet}"`);
+  // Point the <link> at the active stylesheet, or drop it entirely when the
+  // sheet is missing — a dangling href makes pagedjs-cli abort, so unstyled
+  // output beats no output.
+  const link = existsSync(join(projectDir, STYLE_DIR, styleSheet))
+    ? `href="${STYLE_DIR}/${styleSheet}"`
+    : "";
+  let html = shell.replace("<!--BODY-->", body).replace('href="style.css"', link);
 
   // A reflowable variant (web/epub) renders a plain, flowing page — no
   // paged.js pagination. Everything else (including pretext) stays orthogonal.

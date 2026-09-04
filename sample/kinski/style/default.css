@@ -1,23 +1,23 @@
-/*
- * Baseline stylesheet. Everything here is meant to be edited.
- * Page geometry, fonts, and class visuals all live in this one file.
- */
 
 @page {
   size: A5;
   margin: 2cm 4cm 1.5cm 1.5cm;
-  @bottom-center {
+}
+@page :left {
+  margin-left: 3.5cm;
+  margin-right: 2.5cm;
+  @bottom-left {
     content: counter(page);
   }
 }
-@page :left {
-  margin-left: 4cm;
-  margin-right: 1.5cm;
-} /* verso: outer=left */
+
 @page :right {
-  margin-left: 1.5cm;
-  margin-right: 4cm;
-} /* recto: outer=right */
+  margin-left: 2.5cm;
+  margin-right: 3.5cm;
+  @bottom-right {
+    content: counter(page);
+  }
+}
 
 :root {
   --font-body: Georgia, "Iowan Old Style", serif;
@@ -29,6 +29,11 @@ body {
   font-size: var(--font-size);
   line-height: 1.4;
   margin: 0;
+}
+
+hr {
+  display: none;
+  break-before: page;
 }
 
 p {

@@ -1,19 +1,17 @@
 #!/usr/bin/env bun
 
-import { buildHtml, variantConfig, bookBaseName, STYLE_DIR } from "./compile.ts";
+import { buildHtml, variantConfig, bookBaseName, styleSheetChain, STYLE_DIR } from "./compile.ts";
 import { buildEpub } from "./epub.ts";
 import { preview } from "./preview.ts";
-import { cp, copyFile, writeFile, unlink, mkdir } from "node:fs/promises";
+import { cp, writeFile, unlink, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const TOOL_DIR = new URL(".", import.meta.url).pathname;
-const SAMPLE_DIR = resolve(TOOL_DIR, "..", "sample-book");
+const SAMPLE_DIR = resolve(TOOL_DIR, "..", "sample", "template");
 
 // Write index.html directly in the project dir so relative paths
 // (style.css, images/foo.png) resolve when pagedjs-cli loads it as file://.
-// Also drop the tool's template.css alongside it if the user has no style.css,
-// so the export is not unstyled.
 async function exportPdf(projectDir, variant) {
   // Strip the paged.polyfill.js <script>: pagedjs-cli injects its own,
   // and running both paginates the already-paginated output.
@@ -24,11 +22,11 @@ async function exportPdf(projectDir, variant) {
   const htmlPath = join(projectDir, ".quimera-build.html");
   await writeFile(htmlPath, html);
 
-  const userCss = join(projectDir, STYLE_DIR, "default.css");
-  const droppedFallback = !existsSync(userCss);
-  if (droppedFallback) {
-    await mkdir(join(projectDir, STYLE_DIR), { recursive: true });
-    await copyFile(join(TOOL_DIR, "template.css"), userCss);
+  const sheet = (await variantConfig(projectDir, variant)).css;
+  if (!sheet || !existsSync(join(projectDir, STYLE_DIR, sheet))) {
+    console.warn(
+      `warning: variant has no stylesheet under ${STYLE_DIR}/ — output will be unstyled`,
+    );
   }
 
   const outputDir = join(projectDir, "output");
@@ -41,9 +39,6 @@ async function exportPdf(projectDir, variant) {
   const code = await proc.exited;
 
   await unlink(htmlPath);
-  if (droppedFallback) {
-    await unlink(userCss);
-  }
 
   if (code !== 0) {
     throw new Error(`pagedjs-cli exited ${code}`);
@@ -59,6 +54,7 @@ async function exportPdf(projectDir, variant) {
 async function exportWeb(projectDir, variant) {
   const config = await variantConfig(projectDir, variant);
   const activeCss = config.css || "default.css";
+  const cssChain = await styleSheetChain(projectDir, activeCss);
   const html = await buildHtml(projectDir, variant);
 
   const outputDir = join(projectDir, "output", variant || "web");
@@ -66,12 +62,12 @@ async function exportWeb(projectDir, variant) {
   await writeFile(join(outputDir, "index.html"), html);
 
   // Copy filter: keep directories (so cp recurses) and rendered assets; drop
-  // markdown/config sources and any stylesheet other than the active one.
+  // markdown/config sources and any stylesheet outside the active @import chain.
   const keep = (src) => {
     const name = src.split("/").pop() || "";
     const ext = name.includes(".") ? name.slice(name.lastIndexOf(".")).toLowerCase() : "";
     if ([".md", ".ts", ".js"].includes(ext)) return false;
-    if (ext === ".css") return name === activeCss;
+    if (ext === ".css") return cssChain.includes(name);
     return true;
   };
 
