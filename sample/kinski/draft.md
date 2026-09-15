@@ -10,8 +10,6 @@ https://www.goodreads.com/quotes/242879-tyrone-stares-at-him----impressed-yes-th
 
 :::frontmatter
 
----
-
 _This is a work of fiction. Names, characters, businesses, places, events, and incidents are either the products of the author's imagination or used in a fictitious manner. Any resemblance to actual persons, living or dead, or actual events is purely coincidental._
 
 ---

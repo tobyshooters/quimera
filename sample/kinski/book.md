@@ -1,12 +1,12 @@
 ---
-title: Kern
+title: Direct Supervision
 author: Ghost of Kinski
 isbn: XXX
 ---
 
 :::cover
 ## Ghost of Kinski
-# Kern
+# Direct Supervision
 :::
 
 ---

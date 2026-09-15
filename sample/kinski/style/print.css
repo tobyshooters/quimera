@@ -70,7 +70,7 @@ body {
   text-align: center;
 }
 
-.cover h1 { font-size: 48pt; }
+.cover h1 { font-size: 42pt; line-height: 44pt; }
 .cover h2 { font-size: 18pt; }
 
 .vert {
