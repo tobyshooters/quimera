@@ -71,7 +71,7 @@ export default {
   // what `export` builds. Omit for a single config.
   variants: {
     print: {},
-    draft: { knuth_pratt_via_pretext: false },
+    draft: { justification: false },
   },
 };
 ```
@@ -186,7 +186,7 @@ loads, via `window.PagedConfig.before`.
 ### Optimal justification (`pretext-polyfill.ts`)
 
 Browsers justify greedily, line by line; the result rivers and gaps.
-Opt in with `knuth_pratt_via_pretext: true` in config and each single-paragraph `<p>`
+Opt in with a `justification` block in config and each single-paragraph `<p>`
 gets TeX-style optimal breaks instead: a Knuth–Plass-flavoured DP over
 word widths that minimizes total line badness (stretch cubed, plus
 penalties for rivers and over-tight lines). The paragraph is rewritten
@@ -232,7 +232,7 @@ identical; `web` only (a) omits the paged.js polyfill and the print-only
 preview chrome / outer-margin handler, and (b) makes `export` write a
 static `output/<variant>/index.html` plus the asset dirs it references
 (`style/`, `content/`, `images/`) rather than running `pagedjs-cli`.
-Pretext stays orthogonal: with `knuth_pratt_via_pretext` on, web output
+Pretext stays orthogonal: with `justification` on, web output
 still gets optimal justification, but measures each paragraph's live
 column width at runtime (there's no `@page` to read, and the DOM is
 already laid out) instead of using the baked-in `COL_WIDTH`. See

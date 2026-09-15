@@ -18,7 +18,10 @@
         background: #f0f0f0;
       }
       /* Exactly two pages per row at any window width — a spread is a
-         spread. --fit (set by the preview) zooms it down to fit. */
+         spread. --fit (set by the preview) zooms it down to fit.
+         --fit stays unset until pagination finishes: zooming mid-render
+         changes the metrics paged.js measures against and pagination
+         stalls partway through the book. See fit() in preview.ts. */
       .pagedjs_pages {
         display: grid;
         grid-template-columns: repeat(2, max-content);

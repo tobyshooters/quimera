@@ -43,5 +43,5 @@ export default {
   },
 
   // The grid depends on literal spacing — never re-justify.
-  knuth_pratt_via_pretext: false,
+  justification: false,
 };

@@ -2,7 +2,7 @@
 
 @page {
   size: A5;
-  margin-top: 2cm;
+  margin-top: 2.5cm;
   margin-right: 3.5cm;
   margin-bottom: 3.5cm; 
   margin-right: 2cm;
@@ -12,19 +12,37 @@
   margin-left: 3.5cm;
   margin-right: 2cm;
   @bottom-left { content: counter(page) }
+  @top-left { content: var(--title); font-size: 8pt; };
 }
 
 @page :right {
   margin-left: 2cm;
   margin-right: 3.5cm;
-  @bottom-right { content: counter(page) }
+  @bottom-right { content: counter(page) };
+  @top-right { content: var(--author); font-size: 8pt; };
 }
+
+.cover { page: cover }
 
 @page cover {
   margin: 2cm;
   @bottom-right  { content: none; }
   @bottom-center { content: none; }
   @bottom-left   { content: none; }
+  @top-right     { content: none; }
+  @top-left      { content: none; }
+}
+
+.frontmatter { page: frontmatter }
+
+@page frontmatter {
+  @top-right     { content: none; }
+  @top-left      { content: none; }
+}
+
+.pagedjs_margin-top {
+  padding-bottom: 14pt;
+  align-items: flex-end !important;
 }
 
 .pagedjs_margin-bottom {
@@ -38,8 +56,32 @@ body {
   margin: 0;
 }
 
+/* PARAGRAPH MODE */
+p {
+  margin-bottom: 0;
+  text-indent: 1.5em;
+}
+
+h1 + p,
+h2 + p,
+h3 + p,
+blockquote + p,
+figure + p,
+hr + p,
+.cover + p,
+p:first-child,
+p[data-split-from] /* tail of paragraph paged.js split across page break */
+{
+  text-indent: 0;
+}
+
+.epigraph p, blockquote p, figure p {
+  text-indent: 0;
+  margin-bottom: 1em;
+}
+/* END PARAGRAPH MODE */
+
 .cover {
-  page: cover;
   break-before: right;
   break-after: page;
   height: 100%;

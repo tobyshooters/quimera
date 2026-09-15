@@ -13,9 +13,10 @@ export default {
     pagebreak: { tag: "div", class: "pagebreak" }, // ::pagebreak
   },
 
-  // Optimal (Knuth–Plass) paragraph justification. On for paged output; off
-  // where the reader reflows the text (web, epub) and baked breaks would lie.
-  knuth_pratt_via_pretext: true,
+  // Optimal (Knuth–Plass) paragraph justification: present = on, and any knob
+  // set here overrides DEFAULTS in src/pretext-polyfill.ts. Off where the
+  // reader reflows the text (web, epub) and baked breaks would lie.
+  justification: {},
 
   // Output formats. Each is shallow-merged over the settings above and names
   // its own stylesheet under style/. `export` builds the one you name
@@ -36,7 +37,7 @@ export default {
     epub: {
       epub: true,
       css: "epub.css",
-      knuth_pratt_via_pretext: false,
+      justification: false,
     },
   },
 

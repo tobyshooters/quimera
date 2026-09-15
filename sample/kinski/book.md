@@ -1,6 +1,6 @@
 ---
 title: Kern
-author: Kinski
+author: Klaus Kinski
 isbn: XXX
 ---
 

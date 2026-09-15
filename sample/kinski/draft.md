@@ -7,16 +7,23 @@ https://www.goodreads.com/quotes/242879-tyrone-stares-at-him----impressed-yes-th
 - Make clear it's direct supervision, not indirect supervision. Indirect, you can have a pod, a bubble, you got three guys sitting pretty in there, they're watching the cameras. 
  -->
 
+
+::::frontmatter
+
 ---
 
 _This is a work of fiction. Names, characters, businesses, places, events, and incidents are either the products of the author's imagination or used in a fictitious manner. Any resemblance to actual persons, living or dead, or actual events is purely coincidental._
 
 ---
 
+:::epigraph
 Fair is foul and foul is fair:\
 Hover through the fog and filthy air.
 
 _Macbeth_, Act I Scene I
+:::
+
+::::
 
 ---
 

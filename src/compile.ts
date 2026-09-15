@@ -143,16 +143,30 @@ function computeColWidthMm(css: string): number | null {
   return null;
 }
 
+// Mirrors DEFAULTS in pretext-polyfill.ts; only used to catch typos.
+const JUSTIFY_KEYS = [
+  "minSpace", "tightSpace", "riverSpace", "shortLine",
+  "stretch", "river", "riverCurve", "tight", "tightCurve",
+];
+
 // Bundle pretext-polyfill.ts and inject COL_WIDTH, returning an inline <script>.
 // In `measure` mode (web output) pretext ignores COL_WIDTH and measures each
 // paragraph's rendered width instead, since the DOM is already laid out.
-async function pretextScript(colWidthPx: number, measure = false): Promise<string> {
+async function pretextScript(
+  colWidthPx: number,
+  measure = false,
+  justify = {},
+): Promise<string> {
   const entry = resolve(join(TOOL_DIR, "pretext-polyfill.ts"));
   const result = await Bun.build({
     entrypoints: [entry],
     target: "browser",
     minify: true,
-    define: { COL_WIDTH: colWidthPx.toFixed(2), MEASURE_WIDTH: String(measure) },
+    define: {
+      COL_WIDTH: colWidthPx.toFixed(2),
+      MEASURE_WIDTH: String(measure),
+      JUSTIFY: JSON.stringify(justify),
+    },
   });
   if (!result.success) {
     throw new AggregateError(result.logs, "pretext-polyfill bundle failed");
@@ -377,7 +391,7 @@ export async function renderBody(projectDir, variant, { xhtml = false } = {}) {
   proc = proc.use(rehypeStringify, xhtml ? { closeSelfClosing: true, tightSelfClosing: true } : {});
 
   // The active stylesheet, named in config (`css`) and overridable per
-  // variant. Drives both the <link> and the knuth_pratt_via_pretext column-width read.
+  // variant. Drives both the <link> and the pretext column-width read.
   const styleSheet = config.css || "default.css";
   const body = String(await proc.process(md));
   return { body, config, styleSheet };
@@ -429,7 +443,11 @@ export async function buildHtml(projectDir, variant) {
     );
   }
 
-  if (config.knuth_pratt_via_pretext) {
+  // A `justification` block opts the variant into pretext line breaking;
+  // omit it and the browser justifies.
+  const justify = config.justification;
+
+  if (justify) {
     // Web pretext measures each paragraph at runtime, so no column width is
     // needed. Print pretext runs before pagination and can't measure the DOM,
     // so bake in the column width from the stylesheet's @page rules; fall back
@@ -445,7 +463,13 @@ export async function buildHtml(projectDir, variant) {
       if (colWidthMm === null) colWidthMm = 93;
       colWidthPx = colWidthMm * (96 / 25.4);
     }
-    html = html.replace("<!--PRETEXT-->", await pretextScript(colWidthPx, reflow));
+    for (const k of Object.keys(justify)) {
+      if (!JUSTIFY_KEYS.includes(k)) {
+        console.warn(`warning: unknown justification knob '${k}' — ignored`);
+      }
+    }
+
+    html = html.replace("<!--PRETEXT-->", await pretextScript(colWidthPx, reflow, justify));
   } else {
     html = html.replace("<!--PRETEXT-->", "");
   }

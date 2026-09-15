@@ -21,39 +21,10 @@ const MIME = {
   ".ttf": "font/ttf",
 };
 
-// Live reload, plus a place-keeper: on the way out we stash the source
-// line of the topmost visible block, and the fresh render scrolls back to
-// it. Pixel offsets would drift the moment an edit above changes the page
-// count — which is exactly when you're editing.
+// Live reload.
 const RELOAD_SCRIPT = `
 <script>
   (() => {
-    const KEY = "quimera-at";
-    addEventListener("beforeunload", () => {
-      for (const el of document.querySelectorAll("[data-line]")) {
-        if (el.getBoundingClientRect().bottom > 0) {
-          sessionStorage.setItem(KEY, el.dataset.line);
-          return;
-        }
-      }
-    });
-
-    const at = +sessionStorage.getItem(KEY);
-    sessionStorage.removeItem(KEY);
-    const restore = () => {
-      // That line may have been edited away; the first block past it is a
-      // better landing spot than the top of the book.
-      const blocks = [...document.querySelectorAll("[data-line]")];
-      blocks.find((el) => el.dataset.line >= at)?.scrollIntoView();
-    };
-    if (at && window.Paged) {
-      const cfg = (window.PagedConfig ||= {});
-      const after = cfg.after;
-      cfg.after = async (flow) => { await after?.(flow); restore(); };
-    } else if (at) {
-      addEventListener("load", restore);
-    }
-
     const ws = new WebSocket("ws://" + location.host + "/ws");
     ws.onmessage = (e) => { if (e.data === "reload") { location.reload(); } };
   })();
@@ -147,13 +118,16 @@ function rulerChrome() {
     // Pages lay out at real size; zoom the spread down until a facing pair
     // fits the window. The rulers follow the same factor, so they keep
     // reading in document centimetres.
+    //
+    // Only ever called once paged.js has finished. Setting the zoom while
+    // it is still laying out pages changes the metrics it measures against
+    // and pagination stops partway through the book.
     let spread = 0;
     const fit = () => {
       const page = document.querySelector(".pagedjs_page");
       if (!page) {
-        // A reflowable variant has no pages to fit; otherwise paged.js
-        // hasn't finished laying them out yet.
-        return window.Paged ? requestAnimationFrame(fit) : draw();
+        // A reflowable variant has no pages to fit.
+        return draw();
       }
       spread = spread || 2 * page.offsetWidth;
       // Leave the left ruler clear, plus a lateral margin either side.
@@ -167,7 +141,18 @@ function rulerChrome() {
     addEventListener("scroll", sched, { passive: true });
     addEventListener("resize", fit);
     addEventListener("load", draw);
-    fit();
+
+    // paged.js reads config.after only after previewer.preview() resolves,
+    // and holds a live reference to window.PagedConfig — so registering
+    // here, from a <body> script, still lands before it is called.
+    draw(); // rulers at 1:1 while the pages are still being laid out
+    if (window.Paged) {
+      const cfg = (window.PagedConfig ||= {});
+      const prev = cfg.after;
+      cfg.after = async (flow) => { await prev?.(flow); fit(); };
+    } else {
+      fit();
+    }
   })();
 <\/script>
 `;
