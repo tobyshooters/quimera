@@ -13,8 +13,7 @@ _This is a work of fiction. Names, characters, businesses, places, events, and i
 
 ---
 
-Fair is foul and foul is fair: 
-
+Fair is foul and foul is fair:\
 Hover through the fog and filthy air.
 
 _Macbeth_, Act I Scene I

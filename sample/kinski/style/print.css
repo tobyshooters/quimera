@@ -20,6 +20,13 @@
   @bottom-right { content: counter(page) }
 }
 
+@page cover {
+  margin: 2cm;
+  @bottom-right  { content: none; }
+  @bottom-center { content: none; }
+  @bottom-left   { content: none; }
+}
+
 .pagedjs_margin-bottom {
   padding-top: 14pt;
   align-items: flex-start !important;
@@ -30,6 +37,7 @@ body {
   line-height: 14pt;
   margin: 0;
 }
+
 .cover {
   page: cover;
   break-before: right;
@@ -42,20 +50,12 @@ body {
   text-align: center;
 }
 
-.cover h1 {
-  break-before: auto;
-  margin-top: 0;
-}
+.cover h1 { font-size: 48pt; }
+.cover h2 { font-size: 18pt; }
 
-@page cover {
-  @bottom-right  { content: none; }
-  @bottom-center { content: none; }
-  @bottom-left   { content: none; }
-}
-
-h1 {
-  break-before: right; 
-  margin-top: 30%;
+hr {
+  display: none;
+  break-before: page;
 }
 
 .pagebreak {

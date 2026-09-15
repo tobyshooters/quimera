@@ -1,15 +1,3 @@
-/* CUSTOM */
-
-hr {
-  display: none;
-  break-before: page;
-}
-
-/* Shared foundation. Each variant @imports this and overrides only what
-   differs — so a variant stylesheet reads as a diff against this baseline. */
-
-/* Libre Baskerville (OFL, see baskerville/OFL.txt). Two variable fonts cover
-   the whole weight range; swap the family below to use your own. */
 @font-face {
   font-family: "Libre Baskerville";
   src: url("./baskerville/LibreBaskerville-VariableFont_wght.ttf") format("truetype");
@@ -36,10 +24,10 @@ p {
 }
 
 h1 {
-  font-size: 1.6em;
+  font-size: 2em;
 }
+
 h2 {
-  margin-top: 1.5em;
   font-size: 1.2em;
 }
 

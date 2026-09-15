@@ -5,8 +5,8 @@ isbn: XXX
 ---
 
 :::cover
+## Klaus Kinski
 # Kern
-## Kinski
 :::
 
 !include draft.md

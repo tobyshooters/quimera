@@ -59,6 +59,19 @@
         before() {
           class OuterMargin extends window.Paged.Handler {
             afterPageLayout(pageElement) {
+              // A page left empty by a forced break (e.g. the verso after a
+              // cover's break-after) carries no folio. paged.js only tags
+              // pages IT generated as .pagedjs_blank_page, so detect it here.
+              const content = pageElement.querySelector(
+                ".pagedjs_page_content",
+              );
+              if (content && !content.textContent.trim()) {
+                pageElement.classList.add("pagedjs_empty_page");
+                pageElement
+                  .querySelectorAll(".pagedjs_margin-content")
+                  .forEach((el) => (el.style.display = "none"));
+              }
+
               const isLeft = pageElement.classList.contains("pagedjs_left_page");
               const side = isLeft ? "left" : "right";
               const other = isLeft ? "right" : "left";
