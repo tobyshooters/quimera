@@ -21,17 +21,48 @@ const MIME = {
   ".ttf": "font/ttf",
 };
 
+// Live reload, plus a place-keeper: on the way out we stash the source
+// line of the topmost visible block, and the fresh render scrolls back to
+// it. Pixel offsets would drift the moment an edit above changes the page
+// count — which is exactly when you're editing.
 const RELOAD_SCRIPT = `
 <script>
-  const ws = new WebSocket("ws://" + location.host + "/ws");
-  ws.onmessage = (e) => { if (e.data === "reload") location.reload(); };
-</script>
+  (() => {
+    const KEY = "quimera-at";
+    addEventListener("beforeunload", () => {
+      for (const el of document.querySelectorAll("[data-line]")) {
+        if (el.getBoundingClientRect().bottom > 0) {
+          sessionStorage.setItem(KEY, el.dataset.line);
+          return;
+        }
+      }
+    });
+
+    const at = +sessionStorage.getItem(KEY);
+    sessionStorage.removeItem(KEY);
+    const restore = () => {
+      // That line may have been edited away; the first block past it is a
+      // better landing spot than the top of the book.
+      const blocks = [...document.querySelectorAll("[data-line]")];
+      blocks.find((el) => el.dataset.line >= at)?.scrollIntoView();
+    };
+    if (at && window.Paged) {
+      const cfg = (window.PagedConfig ||= {});
+      const after = cfg.after;
+      cfg.after = async (flow) => { await after?.(flow); restore(); };
+    } else if (at) {
+      addEventListener("load", restore);
+    }
+
+    const ws = new WebSocket("ws://" + location.host + "/ws");
+    ws.onmessage = (e) => { if (e.data === "reload") { location.reload(); } };
+  })();
+<\/script>
 `;
 
-// Fixed-corner variant dropdown. Changing it reloads with ?variant=<name>;
-// the choice rides the query string through live-reloads. Injected as a
-// script that appends to <html>, outside <body>, so paged.js — which
-// paginates the body flow — doesn't sweep the <select> into a page.
+// Fixed-corner variant dropdown. Injected as a script that appends to
+// <html>, outside <body>, so paged.js — which paginates the body flow —
+// doesn't sweep the <select> into a page.
 function variantPicker(names, current) {
   if (names.length === 0) {
     return "";
@@ -42,36 +73,19 @@ function variantPicker(names, current) {
   return `
 <script>
   (() => {
-    const KEY = "variant-scroll";
     const s = document.createElement("select");
     s.id = "variant-picker";
     s.innerHTML = ${JSON.stringify(opts)};
     s.style.cssText =
       "position:fixed;top:12px;right:12px;z-index:9999;" +
       "padding:4px 8px;font:13px sans-serif";
+    // Reload carries the reader's place over, same as a rebuild.
     s.onchange = () => {
-      // Stash scroll so the swap lands on the same passage.
-      sessionStorage.setItem(KEY, String(scrollY));
       const u = new URL(location.href);
       u.searchParams.set("variant", s.value);
       location.href = u.toString();
     };
     document.documentElement.appendChild(s);
-
-    // paged.js repaginates asynchronously, so the page grows tall enough
-    // to scroll only some frames after load. Retry scrollTo until we
-    // reach the stashed offset (or give up after ~2s).
-    const y = sessionStorage.getItem(KEY);
-    if (y !== null) {
-      sessionStorage.removeItem(KEY);
-      const target = +y;
-      let tries = 0;
-      const tick = () => {
-        scrollTo(0, target);
-        if (scrollY < target - 1 && tries++ < 120) requestAnimationFrame(tick);
-      };
-      addEventListener("load", () => requestAnimationFrame(tick));
-    }
   })();
 <\/script>
 `;
@@ -86,7 +100,7 @@ function rulerChrome() {
   return `
 <script>
   (() => {
-    const CM = 96 / 2.54, T = 22;
+    const T = 22;
     const mk = (horiz) => {
       const c = document.createElement("canvas");
       c.style.cssText = "position:fixed;z-index:9998;left:0;top:0;" +
@@ -96,6 +110,9 @@ function rulerChrome() {
     };
     const bars = [[mk(true), true], [mk(false), false]];
     const draw = () => {
+      const fit = +getComputedStyle(document.documentElement)
+        .getPropertyValue("--fit") || 1;
+      const CM = 96 / 2.54 * fit;
       const dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
       for (const [c, horiz] of bars) {
         const len = horiz ? W : H;
@@ -127,12 +144,30 @@ function rulerChrome() {
         g.stroke();
       }
     };
+    // Pages lay out at real size; zoom the spread down until a facing pair
+    // fits the window. The rulers follow the same factor, so they keep
+    // reading in document centimetres.
+    let spread = 0;
+    const fit = () => {
+      const page = document.querySelector(".pagedjs_page");
+      if (!page) {
+        // A reflowable variant has no pages to fit; otherwise paged.js
+        // hasn't finished laying them out yet.
+        return window.Paged ? requestAnimationFrame(fit) : draw();
+      }
+      spread = spread || 2 * page.offsetWidth;
+      // Leave the left ruler clear, plus a lateral margin either side.
+      const f = Math.min(1, (innerWidth - T - 64) / spread);
+      document.documentElement.style.setProperty("--fit", f);
+      draw();
+    };
+
     let raf = 0;
     const sched = () => { raf = raf || requestAnimationFrame(() => { raf = 0; draw(); }); };
     addEventListener("scroll", sched, { passive: true });
-    addEventListener("resize", sched);
+    addEventListener("resize", fit);
     addEventListener("load", draw);
-    draw();
+    fit();
   })();
 <\/script>
 `;
@@ -155,8 +190,12 @@ async function serveFile(path) {
     return null;
   }
   const mime = MIME[extname(path)] || "application/octet-stream";
+  // Each rebuild is a fresh frame, free to reuse cached stylesheets — and
+  // then your CSS edit never shows up. Fonts and images stay cacheable;
+  // refetching a megabyte of typeface per keystroke is its own slowness.
+  const cache = extname(path) === ".css" ? "no-store" : "max-age=60";
   return new Response(await readFile(path), {
-    headers: { "Content-Type": mime },
+    headers: { "Content-Type": mime, "Cache-Control": cache },
   });
 }
 

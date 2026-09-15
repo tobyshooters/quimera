@@ -1,7 +1,7 @@
 ---
-title: Kinski
+title: Kern
+author: Kinski
 isbn: XXX
-author: YYY
 ---
 
 :::cover

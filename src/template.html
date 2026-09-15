@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <title>Book</title>
     <link rel="icon" href="data:," />
+    <!--META-->
     <link rel="stylesheet" href="style.css" />
 
     <!--PRINT-ONLY-START-->
@@ -16,11 +17,15 @@
       body {
         background: #f0f0f0;
       }
+      /* Exactly two pages per row at any window width — a spread is a
+         spread. --fit (set by the preview) zooms it down to fit. */
       .pagedjs_pages {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, max-content);
         justify-content: center;
-        gap: 0;
+        zoom: var(--fit, 1);
+        /* Clear the preview's top ruler. */
+        padding-top: 40px;
       }
       .pagedjs_page {
         background: white;

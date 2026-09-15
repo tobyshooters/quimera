@@ -194,6 +194,19 @@ function directivesToHast(registry) {
   };
 }
 
+// Stamp each top-level block with the markdown line it came from. The
+// preview re-anchors its scroll on these across a rebuild.
+function sourceLines() {
+  return (tree) => {
+    for (const node of tree.children) {
+      const line = node.position?.start?.line;
+      if (node.type === "element" && line) {
+        node.properties["data-line"] = line;
+      }
+    }
+  };
+}
+
 async function loadConfig(projectDir) {
   for (const name of ["config.ts", "config.js"]) {
     const path = join(projectDir, name);
@@ -360,6 +373,7 @@ export async function renderBody(projectDir, variant, { xhtml = false } = {}) {
   for (const p of config.rehypePlugins || []) {
     proc = proc.use(p);
   }
+  proc = proc.use(sourceLines);
   proc = proc.use(rehypeStringify, xhtml ? { closeSelfClosing: true, tightSelfClosing: true } : {});
 
   // The active stylesheet, named in config (`css`) and overridable per
@@ -386,7 +400,18 @@ export async function buildHtml(projectDir, variant) {
   const link = existsSync(join(projectDir, STYLE_DIR, styleSheet))
     ? `href="${STYLE_DIR}/${styleSheet}"`
     : "";
-  let html = shell.replace("<!--BODY-->", body).replace('href="style.css"', link);
+  // book.md's front matter, as CSS custom properties — quoted, so a value
+  // drops straight into `content:`. Declared before the project stylesheet,
+  // so a sheet can override one.
+  const meta = Object.entries(await bookMeta(projectDir))
+    .map(([k, v]) => `      --${k}: "${v.replace(/["\\]/g, "\\$&")}";`)
+    .join("\n");
+  const metaStyle = meta ? `<style>\n    :root {\n${meta}\n    }\n    </style>` : "";
+
+  let html = shell
+    .replace("<!--BODY-->", body)
+    .replace("<!--META-->", metaStyle)
+    .replace('href="style.css"', link);
 
   // A reflowable variant (web/epub) renders a plain, flowing page — no
   // paged.js pagination. Everything else (including pretext) stays orthogonal.

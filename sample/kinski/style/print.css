@@ -1,26 +1,28 @@
 @import "./base.css";
 
-/* Print (A5 PDF): the base, plus page geometry and print-only layout. */
-
-/* Page geometry. The outer margin (where notes float) is the wide one and
-   swaps sides between verso and recto so it always faces out. */
 @page {
   size: A5;
-  margin: 2cm 3.5cm 3.5cm 2cm;
-}
-@page :left {
-  margin-left: 3.5cm; /* verso: outer = left */
-  margin-right: 2cm;
-  @bottom-left {
-    content: counter(page);
-  }
-}
-@page :right {
-  margin-left: 2cm; /* recto: outer = right */
+  margin-top: 2cm;
   margin-right: 3.5cm;
-  @bottom-right {
-    content: counter(page);
-  }
+  margin-bottom: 3.5cm; 
+  margin-right: 2cm;
+}
+
+@page :left {
+  margin-left: 3.5cm;
+  margin-right: 2cm;
+  @bottom-left { content: counter(page) }
+}
+
+@page :right {
+  margin-left: 2cm;
+  margin-right: 3.5cm;
+  @bottom-right { content: counter(page) }
+}
+
+.pagedjs_margin-bottom {
+  padding-top: 14pt;
+  align-items: flex-start !important;
 }
 
 body {
@@ -28,16 +30,6 @@ body {
   line-height: 14pt;
   margin: 0;
 }
-
-p {
-  margin: 0 0 0.75em;
-}
-
-h1 {
-  break-before: right; /* chapters open on a recto page */
-  margin-top: 30%;
-}
-
 .cover {
   page: cover;
   break-before: right;
@@ -49,22 +41,27 @@ h1 {
   align-items: center;
   text-align: center;
 }
+
 .cover h1 {
   break-before: auto;
   margin-top: 0;
 }
+
 @page cover {
-  @bottom-center {
-    content: none;
-  }
+  @bottom-right  { content: none; }
+  @bottom-center { content: none; }
+  @bottom-left   { content: none; }
+}
+
+h1 {
+  break-before: right; 
+  margin-top: 30%;
 }
 
 .pagebreak {
   break-after: page;
 }
 
-/* float + outer offset are set per-page by the OuterMargin handler in
-   template.html — paged.js strips .pagedjs_* selectors from user CSS. */
 .margin {
   clear: both;
   width: 2.5cm;

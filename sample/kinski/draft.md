@@ -17,7 +17,7 @@ Fair is foul and foul is fair:
 
 Hover through the fog and filthy air.
 
-—_Macbeth_, Act I Scene I
+_Macbeth_, Act I Scene I
 
 ---
 
