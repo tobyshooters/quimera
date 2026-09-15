@@ -1,20 +1,26 @@
 export default {
 
-  css: "default.css",
-  knuth_pratt_via_pretext: true,
-
-  variants: {
-    print: {},
+  directives: {
+    cover:     { tag: "section", class: "cover"     }, // :::cover ... :::
+    margin:    { tag: "span",    class: "margin"    }, // :margin[a side note]
+    figure:    { tag: "figure",  class: "figure"    }, // :::figure ![cap](img) :::
+    pagebreak: { tag: "div",     class: "pagebreak" }, // ::pagebreak
   },
 
-  directives: {},
-
-  // UNUSED: meta-programming of the markdown AST
-  // remarkPlugins: [],
-
-  // UNUSED: meta-programming of the HTML AST
-  // rehypePlugins: [],
-
-  // UNUSED: custom citation format
-  // formatCitation: (entry, locator, mode) => "...",
+  variants: {
+    print: {
+      css: "print.css",
+      knuth_pratt_via_pretext: true,
+    },
+    web: {
+      web: true,
+      css: "web.css",
+      knuth_pratt_via_pretext: true,
+    },
+    epub: {
+      epub: true,
+      css: "epub.css",
+      knuth_pratt_via_pretext: false,
+    },
+  },
 };

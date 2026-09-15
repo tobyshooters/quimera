@@ -1,0 +1,18 @@
+@import "./base.css";
+
+/* EPUB: the base, plus reader-friendly margins. Readers reflow at will, so we
+   only nudge the rhythm and turn margin notes into indented asides. */
+
+body {
+  margin: 0 5%;
+}
+
+.pagebreak {
+  page-break-after: always;
+}
+
+.margin {
+  margin: 0.5em 0 0.5em 1.5em;
+  padding-left: 1em;
+  border-left: 2px solid #ddd;
+}

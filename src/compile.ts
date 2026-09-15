@@ -166,14 +166,23 @@ async function pretextScript(colWidthPx: number, measure = false): Promise<strin
 // The tool ships no defaults — the registry comes entirely from the
 // user's quimera.config.ts. See sample/book for an example.
 function directivesToHast(registry) {
-  return (tree) => {
-    visit(tree, (node) => {
+  return (tree, file) => {
+    const source = String(file);
+    visit(tree, (node, index, parent) => {
       const kinds = ["containerDirective", "leafDirective", "textDirective"];
       if (!kinds.includes(node.type)) {
         return;
       }
       const entry = registry[node.name];
       if (!entry) {
+        // Not ours: put the original source back verbatim, so prose like
+        // "12:15" or "a:b" doesn't get eaten as an unknown directive.
+        const start = node.position?.start?.offset;
+        const end = node.position?.end?.offset;
+        if (parent && index != null && start != null && end != null) {
+          parent.children[index] = { type: "text", value: source.slice(start, end) };
+          return index;
+        }
         return;
       }
       const data = node.data || (node.data = {});

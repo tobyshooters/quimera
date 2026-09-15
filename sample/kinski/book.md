@@ -9,7 +9,4 @@ author: YYY
 ## Kinski
 :::
 
-extra stuff
-
-
 !include draft.md
