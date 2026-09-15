@@ -38,6 +38,9 @@
 @page frontmatter {
   @top-right     { content: none; }
   @top-left      { content: none; }
+  @bottom-right  { content: none; }
+  @bottom-center { content: none; }
+  @bottom-left   { content: none; }
 }
 
 .pagedjs_margin-top {
@@ -56,31 +59,6 @@ body {
   margin: 0;
 }
 
-/* PARAGRAPH MODE */
-p {
-  margin-bottom: 0;
-  text-indent: 1.5em;
-}
-
-h1 + p,
-h2 + p,
-h3 + p,
-blockquote + p,
-figure + p,
-hr + p,
-.cover + p,
-p:first-child,
-p[data-split-from] /* tail of paragraph paged.js split across page break */
-{
-  text-indent: 0;
-}
-
-.epigraph p, blockquote p, figure p {
-  text-indent: 0;
-  margin-bottom: 1em;
-}
-/* END PARAGRAPH MODE */
-
 .cover {
   break-before: right;
   break-after: page;
@@ -94,6 +72,13 @@ p[data-split-from] /* tail of paragraph paged.js split across page break */
 
 .cover h1 { font-size: 48pt; }
 .cover h2 { font-size: 18pt; }
+
+.vert {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: center;
+}
 
 hr {
   display: none;
@@ -114,3 +99,30 @@ hr {
 .bibliography {
   break-before: right;
 }
+
+
+/* PARAGRAPH MODE */
+p {
+  margin-bottom: 0;
+  text-indent: 1.5em;
+}
+
+h1 + p,
+h2 + p,
+h3 + p,
+blockquote + p,
+figure + p,
+hr + p,
+.cover + p,
+p:first-child,
+p[data-split-from] /* tail of paragraph paged.js split across page break */
+{
+  text-indent: 0;
+}
+
+.frontmatter p, blockquote p, figure p {
+  text-indent: 0;
+  margin-bottom: 1em;
+}
+/* END PARAGRAPH MODE */
+

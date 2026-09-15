@@ -8,7 +8,7 @@ https://www.goodreads.com/quotes/242879-tyrone-stares-at-him----impressed-yes-th
  -->
 
 
-::::frontmatter
+:::frontmatter
 
 ---
 
@@ -16,14 +16,12 @@ _This is a work of fiction. Names, characters, businesses, places, events, and i
 
 ---
 
-:::epigraph
 Fair is foul and foul is fair:\
 Hover through the fog and filthy air.
 
 _Macbeth_, Act I Scene I
-:::
 
-::::
+:::
 
 ---
 

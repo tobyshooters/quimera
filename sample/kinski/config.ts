@@ -1,12 +1,12 @@
 export default {
 
   directives: {
-    cover:     { tag: "section", class: "cover"     }, // :::cover ... :::
-    epigraph:  { tag: "section", class: "epigraph"  }, // :::epigraph ... :::
-    margin:    { tag: "span",    class: "margin"    }, // :margin[a side note]
-    figure:    { tag: "figure",  class: "figure"    }, // :::figure ![cap](img) :::
-    pagebreak: { tag: "div",     class: "pagebreak" }, // ::pagebreak
-    frontmatter: { tag: "div",     class: "frontmatter" }, // ::pagebreak
+    cover:       { tag: "section", class: "cover"       }, // :::cover ... :::
+    margin:      { tag: "span",    class: "margin"      }, // :margin[a side note]
+    figure:      { tag: "figure",  class: "figure"      }, // :::figure ![cap](img) :::
+    pagebreak:   { tag: "div",     class: "pagebreak"   }, // ::pagebreak
+    frontmatter: { tag: "div",     class: "frontmatter" },
+    vert:        { tag: "div",     class: "vert"        },
   },
 
   variants: {
