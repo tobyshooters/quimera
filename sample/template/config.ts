@@ -1,16 +1,14 @@
 export default {
-  // Markdown extensions. Each name maps to an HTML tag + CSS class; the class
-  // must have a matching rule in the stylesheets. Three call sites:
-  //   :name[text]        inline   -> <tag class="name">text</tag>
-  //   ::name             leaf     -> <tag class="name"></tag>
-  //   :::name ... :::    block    -> <tag class="name">...</tag>
-  // Add a directive here + a CSS rule and you have a new construct. That's the
-  // whole extension surface — the tool ships no directives of its own.
+  // Markdown extensions. Three call sites:
+  //   :name[text]        inline   -> <span class="name">text</span>
+  //   ::name             leaf     -> <div class="name"></div>
+  //   :::name ... :::    block    -> <div class="name">...</div>
+  // Any name works with no config at all — write a CSS rule for the class and
+  // you have a new construct. List a name below only to change its tag.
   directives: {
     cover: { tag: "section", class: "cover" }, // :::cover ... :::
     margin: { tag: "span", class: "margin" }, // :margin[a side note]
     figure: { tag: "figure", class: "figure" }, // :::figure ![cap](img) :::
-    pagebreak: { tag: "div", class: "pagebreak" }, // ::pagebreak
   },
 
   // Optimal (Knuth–Plass) paragraph justification: present = on, and any knob

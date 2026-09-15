@@ -76,11 +76,12 @@ export default {
 };
 ```
 
-**The tool ships no directive defaults.** Every class-shaped
-construct in a project comes from that project's own `directives`
-table plus a matching CSS rule. Adding a new kind of block =
-one config entry + one CSS rule. That's the whole extension surface
-for visuals.
+**Every directive works out of the box.** An unregistered `::halfpage`
+or `:::spread` becomes `<div class="halfpage">` / `<div class="spread">`
+(a `<span>` for the inline `:name[…]` form), so the `directives` table
+only lists the exceptions — the ones wanting a different tag, like
+`figure` or `section`. Adding a new kind of block = one CSS rule.
+That's the whole extension surface for visuals.
 
 ## Tool architecture
 
@@ -138,10 +139,12 @@ expand book.md `!include`s (or concat content/*.md alphabetically)
   → substitute the body into template.html
 ```
 
-`directivesToHast` walks the mdast, and for any directive whose name
-appears in the registry sets `data.hName` and `data.hProperties.className`
-so `remark-rehype` emits the right element. Unknown directive names
-pass through unchanged (rendered as their fallback text).
+`directivesToHast` walks the mdast and sets `data.hName` and
+`data.hProperties.className` so `remark-rehype` emits the right element —
+from the registry when the name is there, otherwise `div`/`span` plus the
+directive's own name as class. The one exception is a bracket-less inline
+directive (`12:15`, `a:b`): unregistered, it goes back to the source text
+verbatim so ordinary prose isn't eaten.
 
 The `citations` plugin walks text nodes, matches `[@key]` /
 `[@key, locator]`, replaces each with an `<a class="cite" href="#bib-key">`,
@@ -304,7 +307,8 @@ End-to-end, in this order:
    - no duplicated pages, no overlapping content
      (regression guard for the paged.js double-load bug).
 4. Sanity check the extension surface: add a `:::warning ... :::`
-   block to a `.md`. Confirm it renders as raw text until you add
-   `warning: { tag: "aside", class: "warning" }` to
-   `quimera.config.ts` and a matching `.warning { ... }` rule to
-   `style.css`. Then it should render styled — with zero tool edits.
+   block to a `.md`. Confirm it renders as `<div class="warning">` with
+   no config at all, and picks up a `.warning { ... }` rule in
+   `style.css` — with zero tool edits. Adding
+   `warning: { tag: "aside", class: "warning" }` to `quimera.config.ts`
+   should switch the tag.

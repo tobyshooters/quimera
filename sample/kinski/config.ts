@@ -1,12 +1,10 @@
 export default {
 
+  // Only the exceptions: anything else becomes div.<name> (span inline).
   directives: {
-    cover:       { tag: "section", class: "cover"       }, // :::cover ... :::
-    margin:      { tag: "span",    class: "margin"      }, // :margin[a side note]
-    figure:      { tag: "figure",  class: "figure"      }, // :::figure ![cap](img) :::
-    pagebreak:   { tag: "div",     class: "pagebreak"   }, // ::pagebreak
-    frontmatter: { tag: "div",     class: "frontmatter" },
-    vert:        { tag: "div",     class: "vert"        },
+    cover:  { tag: "section", class: "cover"  },
+    figure: { tag: "figure",  class: "figure" },
+    margin: { tag: "span",    class: "margin" },
   },
 
   variants: {

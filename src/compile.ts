@@ -177,8 +177,9 @@ async function pretextScript(
 
 // Turn container/leaf/text directives into HTML elements per the registry.
 // `:margin[hi]` → `<aside class="margin">hi</aside>`.
-// The tool ships no defaults — the registry comes entirely from the
-// user's quimera.config.ts. See sample/book for an example.
+// Any directive missing from the registry defaults to its own name as a
+// class on a `div` (`span` for the inline form), so quimera.config.ts
+// only has to spell out the exceptions. See sample/book for an example.
 function directivesToHast(registry) {
   return (tree, file) => {
     const source = String(file);
@@ -187,10 +188,12 @@ function directivesToHast(registry) {
       if (!kinds.includes(node.type)) {
         return;
       }
-      const entry = registry[node.name];
-      if (!entry) {
-        // Not ours: put the original source back verbatim, so prose like
-        // "12:15" or "a:b" doesn't get eaten as an unknown directive.
+      const inline = node.type === "textDirective";
+      const bare = inline && !node.children?.length;
+
+      // Bracket-less inline directives are almost always prose — "12:15"
+      // or "a:b" — so those go back verbatim instead of becoming spans.
+      if (bare && !registry[node.name]) {
         const start = node.position?.start?.offset;
         const end = node.position?.end?.offset;
         if (parent && index != null && start != null && end != null) {
@@ -199,6 +202,10 @@ function directivesToHast(registry) {
         }
         return;
       }
+
+      const fallback = { tag: inline ? "span" : "div", class: node.name };
+      const entry = registry[node.name] || fallback;
+
       const data = node.data || (node.data = {});
       const userClass = node.attributes?.class;
       const className = userClass ? [entry.class, userClass] : [entry.class];

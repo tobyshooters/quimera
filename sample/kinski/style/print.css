@@ -80,6 +80,10 @@ body {
   justify-content: center;
 }
 
+.halfpage {
+    height: 40%;
+}
+
 hr {
   display: none;
   break-before: page;

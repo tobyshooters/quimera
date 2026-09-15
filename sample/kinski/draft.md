@@ -23,6 +23,8 @@ _Macbeth_, Act I Scene I
 
 ---
 
+::halfpage
+
 This is an exorcism. A hit on my demons. _J'accuse_ (fuck my French) of the devil-system. God saw in his wisdom to make me an atheist. The Catholic part’s incurable.
 
 Always tryna work out the big picture in my head. Big web. Big mess. Like the fuckin Syrian Civil War. So many factions no one even knows whose side is whose. You know. 
