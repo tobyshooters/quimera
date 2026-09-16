@@ -19,10 +19,20 @@ slider can usefully cover and the one-line gloss the panel shows on hover.
 Spaces are multiples of the font's normal word space; everything else is a
 badness cost, meaningful only against the other costs.
 
-A table of tuples — [key, min, max, step, doc] — rather than sixteen object
-literals, so the ranges line up in a column and an odd one is visible.
+A table of tuples — [key, min, max, step, doc, withPrevious?] — rather than
+sixteen object literals, so the ranges line up in a column and an odd one is
+visible.
+
+The last field puts a knob on the same panel row as the one above it. Every
+toll in here comes as a flat charge plus a curve, and the two are only
+legible together: `river` alone says how much a river costs, `riverCurve`
+alone says nothing at all.
 */
-const GROUPS: [string, [string, number, number, number, string][]][] = [
+type Row = [string, number, number, number, string, boolean?];
+// The columns are the point; reflowed, this becomes 70 lines of
+// one-value-per-line and a range that's off no longer stands out.
+// prettier-ignore
+const GROUPS: [string, Row[]][] = [
   ["spaces", [
     ["minSpace",   0.1, 1,   0.01, "spaces may not shrink below this — the line is rejected outright"],
     ["tightSpace", 0.3, 1.2, 0.01, "below this a line reads tight and starts paying the tight toll"],
@@ -31,26 +41,34 @@ const GROUPS: [string, [string, number, number, number, string][]][] = [
   ]],
   ["weights", [
     ["stretch",    0, 5000,  50,  "price of any deviation from the normal space, cubed"],
-    ["river",      0, 20000, 100, "flat toll for crossing riverSpace at all"],
-    ["riverCurve", 0, 50000, 250, "price of the excess beyond riverSpace, squared"],
     ["tight",      0, 20000, 100, "flat toll for crossing tightSpace at all"],
-    ["tightCurve", 0, 50000, 250, "price of the shortfall below tightSpace, squared"],
+    ["tightCurve", 0, 50000, 250, "price of the shortfall below tightSpace, squared", true],
+    ["river",      0, 20000, 100, "flat toll for crossing riverSpace at all"],
+    ["riverCurve", 0, 50000, 250, "price of the excess beyond riverSpace, squared", true],
   ]],
   ["hyphens", [
     ["hyphenate",           0, 1,     1,   "0 breaks only between whole words, 1 may split them at syllables"],
     ["hyphenPenalty",       0, 20000, 100, "price of ending a line on a hyphen at all"],
     ["doubleHyphenPenalty", 0, 30000, 250, "extra price when the line above also ended on a hyphen"],
-    ["finalHyphenPenalty",  0, 40000, 500, "extra price for hyphenating into the paragraph's last line"],
+    ["finalHyphenPenalty",  0, 40000, 500, "extra price for hyphenating into the paragraph's last line", true],
   ]],
   ["runt", [
     ["runtLine",  0, 0.9,    0.01, "a last line shorter than this much of the measure is a runt"],
     ["runt",      0, 40000,  250,  "flat toll for a short last line at all"],
-    ["runtCurve", 0, 120000, 1000, "price of how far the last line falls short, squared"],
+    ["runtCurve", 0, 120000, 1000, "price of how far the last line falls short, squared", true],
   ]],
 ];
 
 const KNOBS = GROUPS.flatMap(([group, rows]) =>
-  rows.map(([key, min, max, step, doc]) => ({ group, key, min, max, step, doc })),
+  rows.map(([key, min, max, step, doc, withPrevious]) => ({
+    group,
+    key,
+    min,
+    max,
+    step,
+    doc,
+    withPrevious: !!withPrevious,
+  })),
 );
 
 // A5 with the sample's margins, for a variant whose sheet doesn't say.
@@ -61,13 +79,34 @@ function panel(variants, current) {
     .map((v) => `<option${v === current ? " selected" : ""}>${v}</option>`)
     .join("");
 
-  const sliders = KNOBS.map(
-    ({ key, min, max, step, doc }) => `
-      <label for="${key}" title="${doc}">${key}<output id="out-${key}"></output></label>
+  // One knob: name, slider, live value, all on a single line. The gloss is
+  // the row's tooltip rather than standing text under it — sixteen captions
+  // is most of the panel's height, and you only want one at a time.
+  const knob = ({ key, min, max, step, doc }) => `
+    <div class="knob" title="${doc}">
+      <label for="${key}">${key}</label>
       <input type="range" id="${key}" data-knob="${key}"
              min="${min}" max="${max}" step="${step}">
-      <small>${doc}</small>`,
-  ).join("");
+      <output id="out-${key}"></output>
+    </div>`;
+
+  // Knobs marked `withPrevious` share a row with the one above: a flat toll
+  // and its curve are one decision, and splitting them across two rows makes
+  // you scroll to see what you just changed.
+  const sliders = GROUPS.map(([group, rows]) => {
+    const lines: (typeof KNOBS)[] = [];
+    for (const [key] of rows) {
+      const k = KNOBS.find((x) => x.key === key)!;
+      if (k.withPrevious && lines.length) lines[lines.length - 1]!.push(k);
+      else lines.push([k]);
+    }
+    const body = lines
+      .map((ks) =>
+        ks.length > 1 ? `<div class="pair">${ks.map(knob).join("")}</div>` : knob(ks[0]),
+      )
+      .join("");
+    return `<h3>${group}</h3>${body}`;
+  }).join("");
 
   return `
     <div id="panel">
@@ -75,22 +114,26 @@ function panel(variants, current) {
         <select id="variant">${options}</select>
         <button id="prev">←</button>
         <button id="next">→</button>
+        <span id="folio"></span>
       </div>
-      <div id="folio"></div>
 
-      <label class="row"><input type="checkbox" id="browser"> browser justification</label>
-      <label class="row"><input type="checkbox" id="tension" checked> line tension</label>
-      <div id="key">
-        <span><i class="sw tight"></i>tight — spaces squeezed below tightSpace</span>
-        <span><i class="sw river"></i>rivery — spaces stretched past riverSpace</span>
+      <div class="row">
+        <label><input type="checkbox" id="browser"> browser</label>
+        <label><input type="checkbox" id="tension" checked> tension</label>
+        <span id="key">
+          <i class="sw tight" title="tight — spaces squeezed below tightSpace"></i>
+          <i class="sw river" title="rivery — spaces stretched past riverSpace"></i>
+        </span>
       </div>
       <div id="bands"></div>
 
       ${sliders}
 
-      <button id="reset">reset to config</button>
+      <div class="row">
+        <button id="reset">reset</button>
+        <button id="copy">copy</button>
+      </div>
       <pre id="config"></pre>
-      <button id="copy">copy</button>
     </div>`;
 }
 
@@ -113,7 +156,8 @@ function explainer() {
 
   return `
   <div id="explain">
-    <h2>The vocabulary</h2>
+    <details>
+    <summary>The vocabulary</summary>
 
     <p><b>Normal space</b> is how wide the space character is in the book's
     own font, at the book's own size. Every number in this panel is a
@@ -178,8 +222,10 @@ function explainer() {
     and dragging those sliders moves the wall itself. Bars past the left
     rule are orange, past the right are blue, and the same colours wash the
     lines on the page so you can find them. Hover a bar for its number.</p>
+    </details>
 
-    <h2>Hyphenation</h2>
+    <details>
+    <summary>Hyphenation</summary>
 
     <p>Everything above assumes the only give in a line is its spaces. There
     is a second source: a long word at the end of a line can be split, and
@@ -206,14 +252,17 @@ function explainer() {
     the paragraph's last line, where the reader has to carry a fragment
     across the break to a line that then stops early. Set
     <code>hyphenate</code> to 0 to see the paragraph without any of it.</p>
+    </details>
 
-    <h2>The knobs</h2>
+    <details>
+    <summary>The knobs</summary>
     <p>The four space knobs say what counts as bad. The five weights say how
     much it costs; they're meaningful only against each other, so doubling
     all five changes nothing. The hyphen penalties are on that same scale —
     compare them against <code>river</code> and <code>tight</code> to see
     what the breaker is willing to trade a hyphen for.</p>
     <table>${legend}</table>
+    </details>
   </div>`;
 }
 
@@ -254,18 +303,40 @@ function chrome(box, variants, current, initial) {
     display: flex;
     align-items: flex-start;
   }
+  /* Flush with the left edge of the page above it — same 24px margin the
+     sheet has — rather than centred under a page it isn't as wide as. */
   #explain {
+    align-self: flex-start;
     width: min(34em, 90vw);
     margin: 16px 24px 96px;
     font: 14px/1.6 ui-sans-serif, system-ui, sans-serif;
     color: #222;
   }
-  #explain h2 {
-    font-size: 13px;
+  /* This is interface prose, not the book. The stylesheet under test sets a
+     first-line indent on every p, and it inherits straight into here. */
+  #explain p {
+    text-indent: 0;
+    margin: 0 0 0.9em;
+  }
+  /* Collapsed by default: the page is what you came for, and the prose is
+     there for the one term you don't recognise. */
+  #explain details {
+    border-top: 1px solid #ddd;
+  }
+  #explain summary {
+    font-size: 12px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #777;
-    margin: 32px 0 8px;
+    padding: 10px 0;
+    cursor: pointer;
+    user-select: none;
+  }
+  #explain details[open] summary {
+    color: #222;
+  }
+  #explain p:last-child {
+    margin-bottom: 20px;
   }
   #explain code, #explain th {
     font: 12px ui-monospace, monospace;
@@ -301,46 +372,83 @@ function chrome(box, variants, current, initial) {
     position: sticky;
     top: 0;
     flex: none;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 16px 16px 48px;
-    width: 280px;
-    font: 12px ui-monospace, monospace;
+    padding: 10px 12px 32px;
+    width: 300px;
+    font: 11px ui-monospace, monospace;
   }
-  #panel label {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
+  #panel h3 {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #999;
+    font-weight: normal;
+    margin: 12px 0 2px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 2px;
   }
-  #panel small {
-    color: #888;
-    font-size: 10px;
-    line-height: 1.3;
+  /* name | slider | value, one line each. The gloss lives in the row's
+     title attribute; sixteen visible captions were most of the height. */
+  .knob {
+    display: grid;
+    grid-template-columns: 1fr 34px;
+    align-items: center;
+    column-gap: 4px;
+    min-width: 0;
   }
-  #panel output {
-    color: #555;
+  .knob label {
+    color: #444;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .knob output {
+    text-align: right;
+    color: #777;
+  }
+  .knob input {
+    grid-column: 1 / -1;
+    width: 100%;
+    height: 11px;
+    margin: 0 0 2px;
+    accent-color: #666;
+  }
+  /* A flat toll and its curve, side by side — one decision, one row. */
+  .pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 10px;
   }
   .row {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
+    margin: 3px 0;
+  }
+  .row label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: #444;
+  }
+  #panel select, #panel button {
+    font: 11px ui-monospace, monospace;
+    padding: 1px 5px;
   }
   #folio, #bands {
-    color: #555;
-    margin: 6px 0;
+    color: #777;
+    margin-left: auto;
+  }
+  #bands {
+    margin: 2px 0 0;
   }
   #config {
     background: #fff;
-    border: 1px solid #ccc;
-    padding: 8px;
-    font-size: 11px;
+    border: 1px solid #ddd;
+    padding: 6px;
+    margin: 6px 0 0;
+    font-size: 10px;
+    line-height: 1.35;
     overflow-x: auto;
-  }
-  details {
-    margin-top: 16px;
-    color: #444;
-    line-height: 1.45;
   }
   /* Tension bands, keyed off the space ratio pretext stamps on each line. */
   .tension .tight { background: rgba(220, 120, 0, 0.18); }
@@ -355,11 +463,7 @@ function chrome(box, variants, current, initial) {
   .sw.river { background: rgba(0, 110, 220, 0.5); }
   #key {
     display: flex;
-    flex-direction: column;
     gap: 3px;
-    color: #555;
-    font-size: 11px;
-    margin: 4px 0;
   }
 
   /* One bar per line of the page, on the same baseline as the line it

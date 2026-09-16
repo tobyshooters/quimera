@@ -1,0 +1,92 @@
+@import "./print.css";
+
+:root {
+  --num-gap: 0.5cm;
+  /*
+  Libre Baskerville's ascent metric is tall enough (~1.31em) that its
+  baseline sits lower in the 15pt line box than the mono's does at 8pt.
+  Same line-height, different baselines; only an explicit nudge closes it.
+  */
+  --num-shift: 1pt;
+}
+
+@page {
+  size: A5;
+  margin-top: 2cm;
+  margin-bottom: 2cm;
+  margin-left: 2.5cm;
+  margin-right: 2.5cm;
+}
+
+/* The margins have to be restated per side, not just in the bare @page block. */
+
+@page :left {
+  margin-left: 2.5cm;
+  margin-right: 2.5cm;
+  @bottom-left {
+    content: none;
+  }
+}
+
+@page :right {
+  margin-left: 2.5cm;
+  margin-right: 2.5cm;
+  @bottom-right {
+    content: none;
+  }
+}
+
+/* `data-para` and `data-num` are stamped at compile time by paranum.ts. */
+/*
+No first-line indent: the number already marks the paragraph opening, and
+an indent would put the text a variable distance from it — print.css drops
+the indent after headings, quotes and split tails.
+*/
+p[data-para] {
+  position: relative;
+  text-indent: 0;
+  /* Half a line — separation without breaking the 14pt rhythm. */
+  margin-bottom: 7pt;
+}
+
+/* Emptied clone of the anchor, left on the page paged.js broke away from. */
+span[data-num]:empty::before {
+  content: none;
+}
+
+/*
+Hung off the span around the first word, so a paragraph paged.js broke
+before its first line leaves no number behind: the anchor went to the next
+page with the text. The containing block is still the paragraph, which is
+what `right: 100%` and `top` measure against.
+
+Out of flow, so it never steals width from the line boxes pretext measured
+against. `right: 100%` hangs the box off the left edge of the text column,
+so the gap is the margin and nothing else — a fixed-width box with
+text-align lands the digits inconsistently.
+
+Then the number swings to the outer margin: --recto is 0 on verso, 1 on
+recto, set per page by the handler in template.html. The swing rides on
+margin-right, whose percentage — like every percentage on an out-of-flow
+box — resolves against the containing block, i.e. the column. So the page
+geometry is never restated here, and the two gaps stay equal whatever the
+@page margins are.
+*/
+span[data-num]::before {
+  content: attr(data-num);
+  position: absolute;
+  top: var(--num-shift);
+  right: 100%;
+  margin-right: calc(var(--num-gap) - var(--recto, 0) * (100% + 2 * var(--num-gap)));
+  /* ...and the digits' own width, which the margin above can't name: on a
+     transform, 100% is the element itself. */
+  transform: translateX(calc(var(--recto, 0) * 100%));
+  white-space: nowrap;
+
+  font-family: ui-monospace, "DejaVu Sans Mono", monospace;
+  font-size: 8pt;
+  /* The text's line-height, so the digits centre on the first line box:
+     both boxes are 15pt tall, each glyph centred in its own half-leading. */
+  line-height: inherit;
+  color: #999;
+}
