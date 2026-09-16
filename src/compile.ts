@@ -215,6 +215,53 @@ function directivesToHast(registry) {
   };
 }
 
+const VERBATIM = ["code", "pre", "script", "style"];
+
+// After one of these, a straight double quote opens; after anything else it
+// closes. Start-of-text counts as an opener, hence `prev` starts a space.
+const OPENS_AFTER = /[\s([{—–\-“‘]/;
+
+/*
+Typographic quotes, so the markdown can stay as typed: TeX ``like this'',
+straight "like this", and straight apostrophes all end up curly. Runs on
+the rendered tree, and `prev` carries across text nodes so a quote broken
+by markup ("<em>so</em>") still picks the right side.
+*/
+function smartQuotes() {
+  return (tree) => {
+    let prev = " ";
+
+    const walk = (node) => {
+      for (const child of node.children || []) {
+        if (VERBATIM.includes(child.tagName)) {
+          continue;
+        }
+        if (child.type !== "text") {
+          walk(child);
+          continue;
+        }
+
+        let out = "";
+        for (const ch of child.value.replaceAll("``", "“").replaceAll("''", "”")) {
+          if (ch === '"') {
+            out += OPENS_AFTER.test(prev) ? "“" : "”";
+          } else if (ch === "'") {
+            // Always the apostrophe: contractions (don't) and elisions
+            // ('em, 'im) are everywhere, single quotes as quotes are not.
+            out += "’";
+          } else {
+            out += ch;
+          }
+          prev = ch;
+        }
+        child.value = out;
+      }
+    };
+
+    walk(tree);
+  };
+}
+
 // Stamp each top-level block with the markdown line it came from. The
 // preview re-anchors its scroll on these across a rebuild.
 function sourceLines() {
@@ -390,7 +437,8 @@ export async function renderBody(projectDir, variant, { xhtml = false } = {}) {
   proc = proc
     .use(citations, { bib, formatCitation })
     .use(remarkRehype, { allowDangerousHtml: true })
-    .use(rehypeRaw);
+    .use(rehypeRaw)
+    .use(smartQuotes);
   for (const p of config.rehypePlugins || []) {
     proc = proc.use(p);
   }

@@ -76,6 +76,12 @@
               }
 
               const isLeft = pageElement.classList.contains("pagedjs_left_page");
+
+              // Page parity, for stylesheets that need it: paged.js strips
+              // .pagedjs_left_page / .pagedjs_right_page selectors out of
+              // user CSS, but a custom property inherits down untouched.
+              pageElement.style.setProperty("--recto", isLeft ? "0" : "1");
+
               const side = isLeft ? "left" : "right";
               const other = isLeft ? "right" : "left";
               pageElement.querySelectorAll(".margin").forEach((el) => {

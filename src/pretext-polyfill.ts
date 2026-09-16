@@ -145,7 +145,12 @@ function run() {
   const normalSpace = ctx.measureText(" ").width;
 
   for (const el of document.querySelectorAll("p")) {
-    if ([...el.childNodes].some((n) => n.nodeType === Node.ELEMENT_NODE)) continue;
+    // Markup we can't measure. A paragraph-number anchor (paranum.ts) is
+    // the exception: it wraps a bare word and is re-hung below.
+    const opaque = [...el.childNodes].some(
+      (n) => n.nodeType === Node.ELEMENT_NODE && !(n as Element).hasAttribute("data-num"),
+    );
+    if (opaque) continue;
     const text = el.textContent?.trim() ?? "";
     if (!text) continue;
 
@@ -161,6 +166,8 @@ function run() {
     const widths = words.map((w) => ctx.measureText(w).width);
     const lines = layoutOptimal(words, widths, maxWidth, normalSpace, indent);
     if (!lines) continue;
+
+    const num = el.querySelector("[data-num]")?.getAttribute("data-num");
 
     el.innerHTML = "";
     el.style.textIndent = "0";
@@ -179,6 +186,13 @@ function run() {
       }
       span.textContent = line.words.join(" ");
       el.appendChild(span);
+    }
+
+    // Re-hang the number on the first line, which paged.js keeps with the
+    // text it breaks: anchored to the paragraph box instead, the number
+    // would strand on a fragment that got no lines at all.
+    if (num) {
+      el.firstElementChild!.setAttribute("data-num", num);
     }
   }
 }

@@ -15,10 +15,11 @@ isbn: XXX
 ::::vert
 :::frontmatter
 
-Not Nothing Press.
+Not Nothing.\
+A small press for unfashionable work.
 
-Klaus Kinski, Kern.\
-ISBN: 978-0-00-000000-0
+Ghost of Kinski, Direct of Supervision.\
+ISBN. 978-0-00-000000-0
 
 :::
 
