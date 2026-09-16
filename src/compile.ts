@@ -95,20 +95,51 @@ function parseMarginShorthand(val: string): Sides | null {
   return null;
 }
 
+/*
+The bodies of every `@page` block whose selector matches, in source order.
+
+Brace-matched rather than regex'd to the first `}`: an @page block may hold
+margin boxes (`@bottom-left { content: ... }`), and stopping at their closing
+brace silently truncates the block — which is how a sheet can set margins in
+`@page :right` and have them ignored.
+*/
+function pageBlocks(css: string, selector: string): string[] {
+  const out: string[] = [];
+  const open = /@page([^{]*)\{/g;
+  let m: RegExpExecArray | null;
+  while ((m = open.exec(css))) {
+    let depth = 1;
+    let i = m.index + m[0].length;
+    for (; i < css.length && depth > 0; i++) {
+      if (css[i] === "{") depth++;
+      else if (css[i] === "}") depth--;
+    }
+    if (depth !== 0) break;
+    if (m[1]!.trim() === selector) out.push(css.slice(m.index + m[0].length, i - 1));
+    open.lastIndex = i;
+  }
+  return out;
+}
+
 // The margins one @page block sets, shorthand first then longhands, which
 // override it. Sides the block is silent about are left out.
-function blockMargins(block: string): Partial<Sides> {
+function blockMargins(raw: string): Partial<Sides> {
   const out: Partial<Sides> = {};
+  // Margin boxes are nested at-rules with declarations of their own; a
+  // `margin` inside one belongs to the box, not to the page.
+  const block = raw.replace(/@[\w-]+[^{]*\{[^{}]*\}/g, "");
 
-  const short = block.match(/(?:^|[;\s])margin\s*:\s*([^;]+)/);
-  if (short) {
-    Object.assign(out, parseMarginShorthand(short[1]!) || {});
-  }
-  for (const side of ["top", "right", "bottom", "left"] as const) {
-    const m = block.match(new RegExp(`margin-${side}\\s*:\\s*([^;]+)`));
-    const mm = m ? cssLenToMm(m[1]!) : null;
-    if (mm !== null) {
-      out[side] = mm;
+  // In source order, so a later declaration overrides an earlier one — which
+  // is what the browser does, and sheets really do declare a side twice.
+  for (const m of block.matchAll(
+    /(?:^|[;{\s])margin(-top|-right|-bottom|-left)?\s*:\s*([^;}]+)/g,
+  )) {
+    const side = m[1]?.slice(1) as keyof Sides | undefined;
+    if (side) {
+      const mm = cssLenToMm(m[2]!);
+      if (mm !== null) out[side] = mm;
+    } else {
+      Object.assign(out, parseMarginShorthand(m[2]!) || {});
     }
   }
   return out;
@@ -116,17 +147,29 @@ function blockMargins(block: string): Partial<Sides> {
 
 /*
 The recto page box in mm, read out of a stylesheet's @page rules: trim size
-from the base block, margins from `@page :right` layered over it. Recto
+from the base blocks, margins from `@page :right` layered over them. Recto
 because that's the page pretext measures a column against, and most books
 put the wider margin on the outside. Null when the sheet doesn't pin the
 size or the horizontal margins down.
+
+`css` must be the whole cascade — every sheet in the @import chain, in
+cascade order — not one file. A variant that restates `@page` while an
+imported sheet sets `@page :right` gets the imported margins, because a
+page pseudo-class outranks the bare selector no matter who declared it.
+Feed this one sheet and it will confidently report geometry the renderer
+never uses. Use variantPageBox() unless you already have the full cascade.
 */
 export function pageBoxMm(css: string): PageBox | null {
   const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  const base = stripped.match(/@page\s*\{([^}]*)\}/)?.[1] || "";
-  const recto = stripped.match(/@page\s*:right\s*\{([^}]*)\}/)?.[1] || "";
+  const base = pageBlocks(stripped, "");
+  const recto = pageBlocks(stripped, ":right");
 
-  const size = base.match(/size\s*:\s*([^;]+)/);
+  // Last `size` in the cascade wins, same as the browser.
+  let size: RegExpMatchArray | null = null;
+  for (const block of base) {
+    const m = block.match(/size\s*:\s*([^;}]+)/);
+    if (m) size = m;
+  }
   if (!size) {
     return null;
   }
@@ -138,17 +181,31 @@ export function pageBoxMm(css: string): PageBox | null {
     return null;
   }
 
-  const m = { ...blockMargins(base), ...blockMargins(recto) };
+  // Bare @page blocks first, then every :right block on top of them.
+  const m: Partial<Sides> = {};
+  for (const block of [...base, ...recto]) Object.assign(m, blockMargins(block));
   if (m.left === undefined || m.right === undefined) {
     return null;
   }
   return { width, height, top: m.top ?? 0, right: m.right, bottom: m.bottom ?? 0, left: m.left };
 }
 
-// Content column width in mm from the @page rules. Null if undeterminable.
-function computeColWidthMm(css: string): number | null {
-  const box = pageBoxMm(css);
-  return box && box.width - box.left - box.right;
+/*
+The page box for a variant's stylesheet, following @import.
+
+styleSheetChain() walks outward from the entry sheet, so it yields the
+importer before the sheets it pulls in; the cascade runs the other way —
+an @import's rules land before the importing sheet's own. Hence the
+reverse.
+*/
+export async function variantPageBox(projectDir, styleSheet): Promise<PageBox | null> {
+  const chain = await styleSheetChain(projectDir, styleSheet);
+  const sheets: string[] = [];
+  for (const name of [...chain].reverse()) {
+    const path = join(projectDir, STYLE_DIR, name);
+    if (existsSync(path)) sheets.push(await readFile(path, "utf8"));
+  }
+  return pageBoxMm(sheets.join("\n"));
 }
 
 // Mirrors DEFAULTS in pretext-polyfill.ts; only used to catch typos.
@@ -166,6 +223,9 @@ const JUSTIFY_KEYS = [
   "hyphenPenalty",
   "doubleHyphenPenalty",
   "finalHyphenPenalty",
+  "runtLine",
+  "runt",
+  "runtCurve",
 ];
 
 // Bundle pretext-polyfill.ts and inject COL_WIDTH, returning an inline <script>.
@@ -528,12 +588,8 @@ export async function buildHtml(projectDir, variant) {
     // to A5 with default margins (93 mm).
     let colWidthPx = 0;
     if (!reflow) {
-      const styleCssPath = join(projectDir, STYLE_DIR, styleSheet);
-      let colWidthMm: number | null = null;
-      if (existsSync(styleCssPath)) {
-        const userCss = await readFile(styleCssPath, "utf8");
-        colWidthMm = computeColWidthMm(userCss);
-      }
+      const box = await variantPageBox(projectDir, styleSheet);
+      let colWidthMm = box && box.width - box.left - box.right;
       if (colWidthMm === null) colWidthMm = 93;
       colWidthPx = colWidthMm * (96 / 25.4);
     }

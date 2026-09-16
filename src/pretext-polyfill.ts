@@ -51,6 +51,13 @@ const DEFAULTS = {
   doubleHyphenPenalty: 6000,
   // extra price for hyphenating into the paragraph's last line
   finalHyphenPenalty: 10000,
+
+  // -- the runt: a last line too short to read as a line
+  // last lines shorter than this fraction of the measure start paying
+  runtLine: 0.25,
+  // flat toll for being short at all, then quadratic on how short
+  runt: 8000,
+  runtCurve: 40000,
 };
 
 // Reassignable so the justification playground can re-break the same text
@@ -73,7 +80,23 @@ function lineBadness(
   // words plus their inter-word spaces. Check that full width, not just
   // the word widths, or a line that fits on words alone but overflows
   // once spaces are added will be wrongly kept unbroken.
-  if (isLast) return wordWidth + spaceNatural > maxWidth ? HUGE : 0;
+  //
+  // It isn't free, though. A last line holding one or two words reads as a
+  // runt: a stub of text under a full block, with the paragraph's whole
+  // right side left blank. TeX expresses the same preference as glue —
+  // \parfillskip — rather than as a rule about word counts, and so does
+  // this: what offends the eye is the length of the stub, not how many
+  // words happen to be in it. The fix is never local, which is the point
+  // of scoring whole paragraphs — the breaker pays a little stretch on an
+  // earlier line to pull a word down and give the last line some body.
+  if (isLast) {
+    const natural = wordWidth + spaceNatural;
+    if (natural > maxWidth) return HUGE;
+    const floor = T.runtLine * maxWidth;
+    if (natural >= floor || !(floor > 0)) return 0;
+    const shortfall = (floor - natural) / floor;
+    return T.runt + shortfall ** 2 * T.runtCurve;
+  }
   if (spaceCount <= 0) {
     const slack = maxWidth - wordWidth;
     return slack < 0 ? HUGE : slack * slack * 10;
