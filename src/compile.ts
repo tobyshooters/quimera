@@ -153,8 +153,19 @@ function computeColWidthMm(css: string): number | null {
 
 // Mirrors DEFAULTS in pretext-polyfill.ts; only used to catch typos.
 const JUSTIFY_KEYS = [
-  "minSpace", "tightSpace", "riverSpace", "shortLine",
-  "stretch", "river", "riverCurve", "tight", "tightCurve",
+  "minSpace",
+  "tightSpace",
+  "riverSpace",
+  "shortLine",
+  "stretch",
+  "river",
+  "riverCurve",
+  "tight",
+  "tightCurve",
+  "hyphenate",
+  "hyphenPenalty",
+  "doubleHyphenPenalty",
+  "finalHyphenPenalty",
 ];
 
 // Bundle pretext-polyfill.ts and inject COL_WIDTH, returning an inline <script>.

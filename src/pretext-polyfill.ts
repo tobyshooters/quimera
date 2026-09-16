@@ -11,6 +11,8 @@ declare const MEASURE_WIDTH: boolean;
 // The variant's `justification` block from config.ts.
 declare const JUSTIFY: Partial<typeof DEFAULTS>;
 
+import { hyphenate } from "./hyphen.ts";
+
 // A paragraph's usable content width in CSS px (client width minus padding).
 function contentWidth(el: HTMLElement): number {
   const cs = getComputedStyle(el);
@@ -38,6 +40,17 @@ const DEFAULTS = {
   // flat toll for crossing tightSpace, then quadratic on the shortfall
   tight: 3000,
   tightCurve: 10000,
+
+  // -- hyphenation (TeX's \hyphenpenalty and friends)
+  // 0 turns it off entirely and the breaker falls back to whole words
+  hyphenate: 1,
+  // price of ending any line on a hyphen
+  hyphenPenalty: 2000,
+  // extra price when the line above ended on one too — hyphen ladders down
+  // the right margin read worse than the rivers they were avoiding
+  doubleHyphenPenalty: 6000,
+  // extra price for hyphenating into the paragraph's last line
+  finalHyphenPenalty: 10000,
 };
 
 // Reassignable so the justification playground can re-break the same text
@@ -89,50 +102,98 @@ type Piece = { text: string; ctx: Element[]; width: number };
 // word in italic and closes it in roman, with no space to break at.
 type Word = { pieces: Piece[]; width: number; spaceWidth: number };
 
+// What the breaker actually works over. A whole word if it can't be
+// hyphenated, otherwise one syllable of it. `sep` describes the join to the
+// fragment before: a space the line may open out, or a hyphenation point that
+// costs a penalty and an extra glyph to use.
+type Frag = {
+  runs: { text: string; ctx: Element[] }[];
+  width: number;
+  sep: "start" | "space" | "hyphen";
+  // Only one of these is meaningful, per `sep`. The hyphen is measured in the
+  // font of the text before it, since that is the line it gets drawn on.
+  spaceWidth: number;
+  hyphenWidth: number;
+};
+
 type Line = {
-  words: Word[];
+  frags: Frag[];
+  // Fragment widths plus the trailing hyphen, if this line ends on one.
   wordWidth: number;
   spaceNatural: number;
   spaceCount: number;
+  endsHyphen: boolean;
   isLast: boolean;
   maxWidth: number;
 };
 
-// `indent` shortens the first line only — a line starting at word 0 is the
+// `indent` shortens the first line only — a line starting at fragment 0 is the
 // first line, so the DP can price it correctly without tracking line numbers.
-function layoutOptimal(words: Word[], maxWidth: number, indent: number): Line[] | null {
-  const n = words.length;
+//
+// The state is (break position, did the line ending here end on a hyphen).
+// That second bit is what lets consecutive hyphens be charged for; TeX carries
+// the same information in its active-node list.
+function layoutOptimal(frags: Frag[], maxWidth: number, indent: number): Line[] | null {
+  const n = frags.length;
   if (n === 0) return [];
 
-  const dp = new Array<number>(n + 1).fill(Infinity);
-  const prev = new Array<number>(n + 1).fill(-1);
-  dp[0] = 0;
+  // dp[j][h], h = 1 when the line arriving at j ended on a hyphen.
+  const dp = [new Array<number>(n + 1).fill(Infinity), new Array<number>(n + 1).fill(Infinity)];
+  const prev = [new Array<number>(n + 1).fill(-1), new Array<number>(n + 1).fill(-1)];
+  const prevH = [new Array<number>(n + 1).fill(0), new Array<number>(n + 1).fill(0)];
+  dp[0]![0] = 0;
 
   for (let j = 1; j <= n; j++) {
-    let wordWidth = 0;
+    const endsHyphen = j < n && frags[j]!.sep === "hyphen";
+    const h = endsHyphen ? 1 : 0;
+    let width = 0;
     let spaceNatural = 0;
+    let spaceCount = 0;
     for (let k = j - 1; k >= 0; k--) {
-      wordWidth += words[k]!.width;
-      // The space joining word k to k+1 only exists once k+1 is inside the line.
-      if (k < j - 1) spaceNatural += words[k + 1]!.spaceWidth;
-      if (wordWidth > maxWidth * 2) break;
-      if (dp[k] === Infinity) continue;
+      width += frags[k]!.width;
+      // The join between k and k+1 only exists once k+1 is inside the line.
+      if (k < j - 1 && frags[k + 1]!.sep === "space") {
+        spaceNatural += frags[k + 1]!.spaceWidth;
+        spaceCount++;
+      }
+      if (width > maxWidth * 2) break;
+
+      const content = width + (endsHyphen ? frags[j]!.hyphenWidth : 0);
       const mw = k === 0 ? maxWidth - indent : maxWidth;
-      const cost = dp[k]! + lineBadness(wordWidth, spaceNatural, j - k - 1, mw, j === n);
-      if (cost < dp[j]!) {
-        dp[j] = cost;
-        prev[j] = k;
+      const badness = lineBadness(content, spaceNatural, spaceCount, mw, j === n);
+      if (badness >= HUGE) continue;
+
+      for (let hp = 0; hp < 2; hp++) {
+        if (dp[hp]![k] === Infinity) continue;
+        let cost = dp[hp]![k]! + badness;
+        if (endsHyphen) {
+          cost += T.hyphenPenalty;
+          if (hp === 1) cost += T.doubleHyphenPenalty;
+        }
+        // This transition produces the final line, so a hyphen on the line
+        // before it is a hyphen into the last line.
+        if (j === n && hp === 1) cost += T.finalHyphenPenalty;
+        if (cost < dp[h]![j]!) {
+          dp[h]![j] = cost;
+          prev[h]![j] = k;
+          prevH[h]![j] = hp;
+        }
       }
     }
   }
 
-  if (dp[n]! >= HUGE) return null;
+  // The paragraph's last line can't end on a hyphen, so only h = 0 is a valid
+  // finish.
+  if (dp[0]![n]! >= HUGE || dp[0]![n] === Infinity) return null;
 
   const breaks: number[] = [];
   let cur = n;
+  let h = 0;
   while (cur > 0) {
     breaks.push(cur);
-    cur = prev[cur]!;
+    const pk = prev[h]![cur]!;
+    h = prevH[h]![cur]!;
+    cur = pk;
   }
   breaks.reverse();
 
@@ -140,17 +201,23 @@ function layoutOptimal(words: Word[], maxWidth: number, indent: number): Line[] 
   let from = 0;
   for (let i = 0; i < breaks.length; i++) {
     const to = breaks[i]!;
-    let wordWidth = 0;
+    const endsHyphen = to < n && frags[to]!.sep === "hyphen";
+    let width = 0;
     let spaceNatural = 0;
-    for (let w = from; w < to; w++) {
-      wordWidth += words[w]!.width;
-      if (w > from) spaceNatural += words[w]!.spaceWidth;
+    let spaceCount = 0;
+    for (let f = from; f < to; f++) {
+      width += frags[f]!.width;
+      if (f > from && frags[f]!.sep === "space") {
+        spaceNatural += frags[f]!.spaceWidth;
+        spaceCount++;
+      }
     }
     lines.push({
-      words: words.slice(from, to),
-      wordWidth,
+      frags: frags.slice(from, to),
+      wordWidth: width + (endsHyphen ? frags[to]!.hyphenWidth : 0),
       spaceNatural,
-      spaceCount: to - from - 1,
+      spaceCount,
+      endsHyphen,
       isLast: i === breaks.length - 1,
       maxWidth: i === 0 ? maxWidth - indent : maxWidth,
     });
@@ -246,6 +313,51 @@ function buildWords(
   return words;
 }
 
+// Split words into the fragments the breaker chooses among. A word only gets
+// hyphenated if it is a single piece: a word spanning a font change has no
+// sound place to measure a hyphen, and TeX wouldn't break one either.
+function buildFrags(
+  words: Word[],
+  measure: (text: string, font: string) => number,
+  fontOf: (el: Element) => string,
+  root: Element,
+): Frag[] {
+  const frags: Frag[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i]!;
+    const sep = i === 0 ? "start" : "space";
+    const only = word.pieces.length === 1 ? word.pieces[0]! : null;
+    const points = only && T.hyphenate ? hyphenate(only.text) : [];
+
+    if (!only || points.length === 0) {
+      frags.push({
+        runs: word.pieces.map((p) => ({ text: p.text, ctx: p.ctx })),
+        width: word.width,
+        sep,
+        spaceWidth: word.spaceWidth,
+        hyphenWidth: 0,
+      });
+      continue;
+    }
+
+    const font = fontOf(only.ctx.length ? only.ctx[only.ctx.length - 1]! : root);
+    const hyphenWidth = measure("-", font);
+    let from = 0;
+    for (const at of [...points, only.text.length]) {
+      const text = only.text.slice(from, at);
+      frags.push({
+        runs: [{ text, ctx: only.ctx }],
+        width: measure(text, font),
+        sep: from === 0 ? sep : "hyphen",
+        spaceWidth: from === 0 ? word.spaceWidth : 0,
+        hyphenWidth,
+      });
+      from = at;
+    }
+  }
+  return frags;
+}
+
 // Re-emit one line's words into `span`, rebuilding the inline markup each
 // piece sat under. An element spanning a line break is cloned into both lines,
 // which is what the browser does internally with an inline box too.
@@ -260,15 +372,16 @@ function emitLine(span: HTMLElement, line: Line) {
     else sink.appendChild(document.createTextNode(text));
   };
 
-  for (let i = 0; i < line.words.length; i++) {
+  for (let i = 0; i < line.frags.length; i++) {
     // The space goes into whatever context the previous word ended in — the
-    // same font it was measured with in buildWords().
-    if (i > 0) append(" ");
-    for (const piece of line.words[i]!.pieces) {
-      if (piece.ctx !== curCtx) {
-        curCtx = piece.ctx;
+    // same font it was measured with in buildWords(). Fragments joined by a
+    // hyphenation point get no separator: they're one word, mid-syllable.
+    if (i > 0 && line.frags[i]!.sep === "space") append(" ");
+    for (const run of line.frags[i]!.runs) {
+      if (run.ctx !== curCtx) {
+        curCtx = run.ctx;
         sink = span;
-        for (const el of piece.ctx) {
+        for (const el of run.ctx) {
           const clone = el.cloneNode(false) as Element;
           // A duplicated id is invalid, and cloning is exactly how lines get
           // duplicated here.
@@ -277,9 +390,13 @@ function emitLine(span: HTMLElement, line: Line) {
           sink = clone;
         }
       }
-      append(piece.text);
+      append(run.text);
     }
   }
+
+  // The visible hyphen, inside the last fragment's context so it takes that
+  // text's font — which is the width the breaker budgeted for it.
+  if (line.endsHyphen) append("-");
 }
 
 function run(knobs: Partial<typeof DEFAULTS> = {}) {
@@ -330,7 +447,8 @@ function run(knobs: Partial<typeof DEFAULTS> = {}) {
     // first line only — after the breaker has budgeted for it.
     const indent = parseFloat(getComputedStyle(el).textIndent) || 0;
 
-    const lines = layoutOptimal(words, maxWidth, indent);
+    const frags = buildFrags(words, measure, fontOf, el);
+    const lines = layoutOptimal(frags, maxWidth, indent);
     if (!lines) continue;
 
     const num = el.querySelector("[data-num]")?.getAttribute("data-num");
