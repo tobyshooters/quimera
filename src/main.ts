@@ -3,6 +3,7 @@
 import { buildHtml, variantConfig, bookBaseName, styleSheetChain, STYLE_DIR } from "./compile.ts";
 import { buildEpub } from "./epub.ts";
 import { preview } from "./preview.ts";
+import { justify } from "./justify.ts";
 import { cp, writeFile, unlink, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -100,7 +101,7 @@ async function init(projectDir) {
 }
 
 function usage() {
-  console.error("usage: quimera <preview|export|init> <dir> [variant]");
+  console.error("usage: quimera <preview|justify|export|init> <dir> [variant]");
   process.exit(1);
 }
 
@@ -113,6 +114,9 @@ const abs = resolve(dir);
 switch (cmd) {
   case "preview":
     await preview(abs, variant);
+    break;
+  case "justify":
+    await justify(abs, variant);
     break;
   case "export": {
     const config = await variantConfig(abs, variant);

@@ -40,7 +40,9 @@ const DEFAULTS = {
   tightCurve: 10000,
 };
 
-const T = { ...DEFAULTS, ...JUSTIFY };
+// Reassignable so the justification playground can re-break the same text
+// under new knobs without a rebuild; every other target sets it once.
+let T = { ...DEFAULTS, ...JUSTIFY };
 
 function lineBadness(
   wordWidth: number,
@@ -137,7 +139,9 @@ function layoutOptimal(
   return lines;
 }
 
-function run() {
+function run(knobs: Partial<typeof DEFAULTS> = {}) {
+  T = { ...DEFAULTS, ...JUSTIFY, ...knobs };
+
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d")!;
   const bs = getComputedStyle(document.body);
@@ -177,13 +181,19 @@ function run() {
       span.style.whiteSpace = "nowrap";
       span.style.breakInside = "avoid";
       if (line.maxWidth < maxWidth) span.style.textIndent = `${maxWidth - line.maxWidth}px`;
+      // The line's inter-word space as a multiple of the font's normal one:
+      // 1 is untouched, and it's the only quantity lineBadness() scores. The
+      // justify playground reads it back off the DOM to colour the line.
+      let ratio = 1;
       if (!line.isLast && line.spaceCount > 0) {
         const natural = line.wordWidth + line.spaceCount * normalSpace;
         if (natural >= line.maxWidth * T.shortLine) {
           const sp = (line.maxWidth - line.wordWidth) / line.spaceCount;
           span.style.wordSpacing = `${sp - normalSpace}px`;
+          ratio = sp / normalSpace;
         }
       }
+      span.dataset.space = ratio.toFixed(2);
       span.textContent = line.words.join(" ");
       el.appendChild(span);
     }
@@ -196,6 +206,9 @@ function run() {
     }
   }
 }
+
+// The playground drives these by hand, a page at a time.
+(window as any).pretext = { run, defaults: DEFAULTS };
 
 if (MEASURE_WIDTH) {
   // Web output: no paged.js to call PagedConfig.before, so run once the

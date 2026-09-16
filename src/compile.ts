@@ -73,74 +73,82 @@ function cssLenToMm(val: string): number | null {
   return null;
 }
 
-// Parse margin shorthand (1–4 values) → { top, right, bottom, left } in mm.
-function parseMarginShorthand(val: string): { right: number; left: number } | null {
-  const parts = val.trim().split(/\s+/);
-  const mm = parts.map(cssLenToMm);
+type Sides = { top: number; right: number; bottom: number; left: number };
+export type PageBox = { width: number; height: number } & Sides;
+
+// Parse margin shorthand (1–4 values) → sides in mm. Null if any value is
+// a length we can't resolve (a percentage, calc(), a var()).
+function parseMarginShorthand(val: string): Sides | null {
+  const mm = val.trim().split(/\s+/).map(cssLenToMm);
   if (mm.some((v) => v === null)) return null;
-  const [top, right, bottom, left] = mm as number[];
-  // CSS shorthand: 1=all, 2=top/bottom & right/left, 3=top & right/left & bottom, 4=top right bottom left
-  switch (parts.length) {
+  const [a, b, c, d] = mm as number[];
+  switch (mm.length) {
     case 1:
-      return { right: top, left: top };
+      return { top: a!, right: a!, bottom: a!, left: a! };
     case 2:
-      return { right: right!, left: right! };
+      return { top: a!, right: b!, bottom: a!, left: b! };
     case 3:
-      return { right: right!, left: right! };
+      return { top: a!, right: b!, bottom: c!, left: b! };
     case 4:
-      return { right: right!, left: left! };
+      return { top: a!, right: b!, bottom: c!, left: d! };
   }
   return null;
 }
 
-// Compute content column width in mm from style.css @page rules.
-// Returns null if it can't be determined.
-function computeColWidthMm(css: string): number | null {
-  // Strip comments
-  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+// The margins one @page block sets, shorthand first then longhands, which
+// override it. Sides the block is silent about are left out.
+function blockMargins(block: string): Partial<Sides> {
+  const out: Partial<Sides> = {};
 
-  // Extract the base @page block (not :left/:right)
-  const baseMatch = stripped.match(/@page\s*\{([^}]*)\}/);
-  const baseBlock = baseMatch ? baseMatch[1] : "";
-
-  // Extract @page :right block (recto; most books have inner on left)
-  const rightMatch = stripped.match(/@page\s*:right\s*\{([^}]*)\}/);
-  const rightBlock = rightMatch ? rightMatch[1] : "";
-
-  // Determine page width from size:
-  let pageWidthMm: number | null = null;
-  const sizeMatch = baseBlock.match(/size\s*:\s*([^;]+)/);
-  if (sizeMatch) {
-    const sizeParts = sizeMatch[1].trim().toLowerCase().split(/\s+/);
-    const named = PAGE_SIZES[sizeParts[0]];
-    if (named) {
-      pageWidthMm = named[0]; // portrait width
-    } else {
-      // Explicit dimensions e.g. "200mm 280mm"
-      const w = cssLenToMm(sizeParts[0]);
-      if (w !== null) pageWidthMm = w;
+  const short = block.match(/(?:^|[;\s])margin\s*:\s*([^;]+)/);
+  if (short) {
+    Object.assign(out, parseMarginShorthand(short[1]!) || {});
+  }
+  for (const side of ["top", "right", "bottom", "left"] as const) {
+    const m = block.match(new RegExp(`margin-${side}\\s*:\\s*([^;]+)`));
+    const mm = m ? cssLenToMm(m[1]!) : null;
+    if (mm !== null) {
+      out[side] = mm;
     }
   }
-  if (pageWidthMm === null) return null;
+  return out;
+}
 
-  // Determine margins: prefer @page :right, fall back to base @page
-  const activeBlock = rightBlock || baseBlock;
+/*
+The recto page box in mm, read out of a stylesheet's @page rules: trim size
+from the base block, margins from `@page :right` layered over it. Recto
+because that's the page pretext measures a column against, and most books
+put the wider margin on the outside. Null when the sheet doesn't pin the
+size or the horizontal margins down.
+*/
+export function pageBoxMm(css: string): PageBox | null {
+  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const base = stripped.match(/@page\s*\{([^}]*)\}/)?.[1] || "";
+  const recto = stripped.match(/@page\s*:right\s*\{([^}]*)\}/)?.[1] || "";
 
-  // Try margin shorthand first
-  const marginMatch = activeBlock.match(/(?:^|[;\s])margin\s*:\s*([^;]+)/);
-  if (marginMatch) {
-    const sides = parseMarginShorthand(marginMatch[1]);
-    if (sides) return pageWidthMm - sides.left - sides.right;
+  const size = base.match(/size\s*:\s*([^;]+)/);
+  if (!size) {
+    return null;
+  }
+  const parts = size[1]!.trim().toLowerCase().split(/\s+/);
+  const named = PAGE_SIZES[parts[0]!];
+  const width = named ? named[0] : cssLenToMm(parts[0]!);
+  const height = named ? named[1] : cssLenToMm(parts[1] || parts[0]!);
+  if (width === null || height === null) {
+    return null;
   }
 
-  // Try individual sides
-  const mlMatch = activeBlock.match(/margin-left\s*:\s*([^;]+)/);
-  const mrMatch = activeBlock.match(/margin-right\s*:\s*([^;]+)/);
-  const ml = mlMatch ? cssLenToMm(mlMatch[1].trim()) : null;
-  const mr = mrMatch ? cssLenToMm(mrMatch[1].trim()) : null;
-  if (ml !== null && mr !== null) return pageWidthMm - ml! - mr!;
+  const m = { ...blockMargins(base), ...blockMargins(recto) };
+  if (m.left === undefined || m.right === undefined) {
+    return null;
+  }
+  return { width, height, top: m.top ?? 0, right: m.right, bottom: m.bottom ?? 0, left: m.left };
+}
 
-  return null;
+// Content column width in mm from the @page rules. Null if undeterminable.
+function computeColWidthMm(css: string): number | null {
+  const box = pageBoxMm(css);
+  return box && box.width - box.left - box.right;
 }
 
 // Mirrors DEFAULTS in pretext-polyfill.ts; only used to catch typos.
@@ -152,7 +160,7 @@ const JUSTIFY_KEYS = [
 // Bundle pretext-polyfill.ts and inject COL_WIDTH, returning an inline <script>.
 // In `measure` mode (web output) pretext ignores COL_WIDTH and measures each
 // paragraph's rendered width instead, since the DOM is already laid out.
-async function pretextScript(
+export async function pretextScript(
   colWidthPx: number,
   measure = false,
   justify = {},

@@ -166,7 +166,7 @@ function debounce(fn, ms) {
   };
 }
 
-async function serveFile(path) {
+export async function serveFile(path) {
   if (!existsSync(path)) {
     return null;
   }
