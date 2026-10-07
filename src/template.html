@@ -49,6 +49,31 @@
         content: "";
         width: var(--preview-page-width, 148mm);
       }
+
+      /* The wraparound cover is a spread-width sheet. A named @page sizes
+         only the page box; the sheet keeps reading --pagedjs-width*, and
+         clips. So hand the sheet the box's dimensions, whatever they are. */
+      .pagedjs_page:has(.cover-image) {
+        --pagedjs-width: var(--pagedjs-pagebox-width);
+        --pagedjs-width-left: var(--pagedjs-pagebox-width);
+        --pagedjs-width-right: var(--pagedjs-pagebox-width);
+        --pagedjs-height: var(--pagedjs-pagebox-height);
+        --pagedjs-height-left: var(--pagedjs-pagebox-height);
+        --pagedjs-height-right: var(--pagedjs-pagebox-height);
+        /* Both columns of row 1; the phantom slot drops to row 2. */
+        grid-row: 1;
+        grid-column: 1 / -1;
+        justify-self: center;
+      }
+      .pagedjs_pages:has(.cover-image)::before {
+        grid-row: 2;
+      }
+      /* The cover stands where a verso and a recto would, but paged.js counts
+         it as one page and inserts a verso to reach the next recto. Hiding
+         that blank is what matches the preview to the exported PDF. */
+      .pagedjs_page:has(.cover-image) + .pagedjs_empty_page {
+        display: none;
+      }
     </style>
 
     <!--

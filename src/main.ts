@@ -1,6 +1,13 @@
 #!/usr/bin/env bun
 
-import { buildHtml, variantConfig, bookBaseName, styleSheetChain, STYLE_DIR } from "./compile.ts";
+import {
+  buildHtml,
+  variantConfig,
+  bookBaseName,
+  bookMeta,
+  styleSheetChain,
+  STYLE_DIR,
+} from "./compile.ts";
 import { buildEpub } from "./epub.ts";
 import { preview } from "./preview.ts";
 import { justify } from "./justify.ts";
@@ -13,16 +20,26 @@ const SAMPLE_DIR = resolve(TOOL_DIR, "..", "sample", "template");
 
 // Write index.html directly in the project dir so relative paths
 // (style.css, images/foo.png) resolve when pagedjs-cli loads it as file://.
-async function exportPdf(projectDir, variant) {
+async function runPaged(projectDir, html, outputPdf) {
   // Strip the paged.polyfill.js <script>: pagedjs-cli injects its own,
   // and running both paginates the already-paginated output.
-  const html = (await buildHtml(projectDir, variant)).replace(
-    /\s*<script src="[^"]*paged\.polyfill\.js"[^>]*><\/script>/,
-    "",
-  );
+  const stripped = html.replace(/\s*<script src="[^"]*paged\.polyfill\.js"[^>]*><\/script>/, "");
   const htmlPath = join(projectDir, ".quimera-build.html");
-  await writeFile(htmlPath, html);
+  await writeFile(htmlPath, stripped);
 
+  const proc = Bun.spawn(["bunx", "pagedjs-cli", "-o", outputPdf, htmlPath], {
+    stdio: ["inherit", "inherit", "inherit"],
+  });
+  const code = await proc.exited;
+
+  await unlink(htmlPath);
+
+  if (code !== 0) {
+    throw new Error(`pagedjs-cli exited ${code}`);
+  }
+}
+
+async function exportPdf(projectDir, variant) {
   const sheet = (await variantConfig(projectDir, variant)).css;
   if (!sheet || !existsSync(join(projectDir, STYLE_DIR, sheet))) {
     console.warn(
@@ -34,16 +51,32 @@ async function exportPdf(projectDir, variant) {
   await mkdir(outputDir, { recursive: true });
   const base = await bookBaseName(projectDir);
   const outputPdf = join(outputDir, variant ? `${base}-${variant}.pdf` : `${base}.pdf`);
-  const proc = Bun.spawn(["bunx", "pagedjs-cli", "-o", outputPdf, htmlPath], {
-    stdio: ["inherit", "inherit", "inherit"],
-  });
-  const code = await proc.exited;
 
-  await unlink(htmlPath);
+  // A wraparound cover is a wider sheet than the text block, and Chromium's
+  // printToPDF gives a document exactly one paper size. So it's a second,
+  // one-page render, concatenated after the fact: qpdf keeps each page's own
+  // MediaBox, which is the whole point.
+  if (!(await bookMeta(projectDir)).cover) {
+    await runPaged(projectDir, await buildHtml(projectDir, variant), outputPdf);
+  } else {
+    const coverPdf = join(outputDir, ".cover.pdf");
+    const bodyPdf = join(outputDir, ".body.pdf");
 
-  if (code !== 0) {
-    throw new Error(`pagedjs-cli exited ${code}`);
+    await runPaged(projectDir, await buildHtml(projectDir, variant, { cover: "only" }), coverPdf);
+    await runPaged(projectDir, await buildHtml(projectDir, variant, { cover: "omit" }), bodyPdf);
+
+    const merge = Bun.spawn(["qpdf", "--empty", "--pages", coverPdf, bodyPdf, "--", outputPdf], {
+      stdio: ["inherit", "inherit", "inherit"],
+    });
+    if ((await merge.exited) !== 0) {
+      // Left in place: the two halves are still printable on their own.
+      throw new Error(`qpdf failed — ${coverPdf} and ${bodyPdf} unmerged`);
+    }
+
+    await unlink(coverPdf);
+    await unlink(bodyPdf);
   }
+
   console.log(`wrote ${outputPdf}`);
 }
 
@@ -72,7 +105,7 @@ async function exportWeb(projectDir, variant) {
     return true;
   };
 
-  for (const dir of [STYLE_DIR, "content", "images"]) {
+  for (const dir of [STYLE_DIR, "content", "images", "cover"]) {
     const src = join(projectDir, dir);
     if (existsSync(src)) {
       await cp(src, join(outputDir, dir), { recursive: true, filter: keep });

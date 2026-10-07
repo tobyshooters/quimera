@@ -436,7 +436,7 @@ function parseFrontMatter(md) {
 }
 
 // The book's front-matter (title, …), or empty if there's no book.md.
-async function bookMeta(projectDir) {
+export async function bookMeta(projectDir) {
   const bookPath = join(projectDir, "book.md");
   if (!existsSync(bookPath)) {
     return {};
@@ -537,9 +537,26 @@ function isReflowable(config) {
   return Boolean(config.web || config.epub);
 }
 
-export async function buildHtml(projectDir, variant) {
-  const { body, config, styleSheet } = await renderBody(projectDir, variant);
-  const reflow = isReflowable(config);
+// `cover` places the wraparound cover named by book.md's `cover:` front
+// matter — "include" in front of the book, "omit" nowhere, "only" alone on
+// its own sheet, which the PDF export needs because Chromium gives a
+// document exactly one paper size.
+export async function buildHtml(projectDir, variant, { cover = "include" } = {}) {
+  const config = await variantConfig(projectDir, variant);
+  const front = await bookMeta(projectDir);
+  const only = cover === "only";
+
+  const { body: text, styleSheet } = only
+    ? { body: "", styleSheet: config.coverCss || "cover.css" }
+    : await renderBody(projectDir, variant);
+
+  // Empty: the image arrives as --cover, so book.md carries no markup and
+  // there's no asset path to rewrite.
+  const div = '<div class="cover-image"></div>';
+  const wanted = only || (front.cover && cover === "include");
+  const body = wanted ? div + text : text;
+
+  const reflow = !only && isReflowable(config);
 
   const shell = await readFile(join(TOOL_DIR, "template.html"), "utf8");
   // Point the <link> at the active stylesheet, or drop it entirely when the
@@ -551,8 +568,12 @@ export async function buildHtml(projectDir, variant) {
   // book.md's front matter, as CSS custom properties — quoted, so a value
   // drops straight into `content:`. Declared before the project stylesheet,
   // so a sheet can override one.
-  const meta = Object.entries(await bookMeta(projectDir))
-    .map(([k, v]) => `      --${k}: "${v.replace(/["\\]/g, "\\$&")}";`)
+  const meta = Object.entries(front)
+    .map(([k, v]) => {
+      const val = v.replace(/["\\]/g, "\\$&");
+      // A path is only usable as a url(), and url(var(--x)) isn't a thing.
+      return `      --${k}: ${k === "cover" ? `url("${val}")` : `"${val}"`};`;
+    })
     .join("\n");
   const metaStyle = meta ? `<style>\n    :root {\n${meta}\n    }\n    </style>` : "";
 
@@ -578,8 +599,8 @@ export async function buildHtml(projectDir, variant) {
   }
 
   // A `justification` block opts the variant into pretext line breaking;
-  // omit it and the browser justifies.
-  const justify = config.justification;
+  // omit it and the browser justifies. The cover has no lines to break.
+  const justify = !only && config.justification;
 
   if (justify) {
     // Web pretext measures each paragraph at runtime, so no column width is
