@@ -50,9 +50,10 @@
         width: var(--preview-page-width, 148mm);
       }
 
-      /* The wraparound cover is a spread-width sheet. A named @page sizes
-         only the page box; the sheet keeps reading --pagedjs-width*, and
-         clips. So hand the sheet the box's dimensions, whatever they are. */
+      /* Either face of the wraparound cover is a spread-width sheet. A named
+         @page sizes only the page box; the sheet keeps reading
+         --pagedjs-width*, and clips. So hand the sheet the box's dimensions,
+         whatever they are, and let it span both columns. */
       .pagedjs_page:has(.cover-image) {
         --pagedjs-width: var(--pagedjs-pagebox-width);
         --pagedjs-width-left: var(--pagedjs-pagebox-width);
@@ -60,12 +61,15 @@
         --pagedjs-height: var(--pagedjs-pagebox-height);
         --pagedjs-height-left: var(--pagedjs-pagebox-height);
         --pagedjs-height-right: var(--pagedjs-pagebox-height);
-        /* Both columns of row 1; the phantom slot drops to row 2. */
-        grid-row: 1;
         grid-column: 1 / -1;
         justify-self: center;
       }
-      .pagedjs_pages:has(.cover-image)::before {
+      /* Only the front cover takes row 1 and pushes the phantom slot down;
+         the inner cover is last and auto-places. */
+      .pagedjs_page:has(.cover-image:not(.cover-inner)) {
+        grid-row: 1;
+      }
+      .pagedjs_pages:has(.cover-image:not(.cover-inner))::before {
         grid-row: 2;
       }
       /* The cover stands where a verso and a recto would, but paged.js counts

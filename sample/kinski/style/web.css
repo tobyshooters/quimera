@@ -17,6 +17,32 @@ body {
   padding: 3rem 1.5rem 6rem;
 }
 
+/* No sheet to fill on screen, so the cover is just an image at its own
+   ratio, full measure. */
+.cover-image {
+  aspect-ratio: 4 / 3;
+  margin-bottom: 3rem;
+  background-image: var(--cover);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.cover-inner {
+  margin: 3rem 0 0;
+  background-image: var(--cover-inner);
+}
+
+/* No sheet to fill on screen either — just the image at full measure. */
+.fullpage {
+  margin: 3rem 0;
+}
+.fullpage p {
+  margin: 0;
+}
+.fullpage img {
+  width: 100%;
+}
+
 .cover {
   padding: 2rem 0 3rem;
   margin-bottom: 3rem;

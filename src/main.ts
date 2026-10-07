@@ -52,29 +52,46 @@ async function exportPdf(projectDir, variant) {
   const base = await bookBaseName(projectDir);
   const outputPdf = join(outputDir, variant ? `${base}-${variant}.pdf` : `${base}.pdf`);
 
-  // A wraparound cover is a wider sheet than the text block, and Chromium's
-  // printToPDF gives a document exactly one paper size. So it's a second,
-  // one-page render, concatenated after the fact: qpdf keeps each page's own
-  // MediaBox, which is the whole point.
-  if (!(await bookMeta(projectDir)).cover) {
+  // A cover is a wider sheet than the text block, and Chromium's printToPDF
+  // gives a document exactly one paper size. So each face is its own
+  // one-page render, concatenated after the fact: qpdf keeps every page's
+  // own MediaBox, which is the whole point. The inner cover goes last — it's
+  // the far end of the sheet the outer cover is printed on.
+  const front = await bookMeta(projectDir);
+  if (!front.cover && !front["cover-inner"]) {
     await runPaged(projectDir, await buildHtml(projectDir, variant), outputPdf);
-  } else {
-    const coverPdf = join(outputDir, ".cover.pdf");
-    const bodyPdf = join(outputDir, ".body.pdf");
+    console.log(`wrote ${outputPdf}`);
+    return;
+  }
 
-    await runPaged(projectDir, await buildHtml(projectDir, variant, { cover: "only" }), coverPdf);
-    await runPaged(projectDir, await buildHtml(projectDir, variant, { cover: "omit" }), bodyPdf);
+  // In page order: [front-matter key, cover mode, temp name]. A null key
+  // always renders; the others only when book.md declares that face.
+  const faces = [
+    ["cover", "outer", "outer"],
+    [null, "omit", "body"],
+    ["cover-inner", "inner", "inner"],
+  ];
 
-    const merge = Bun.spawn(["qpdf", "--empty", "--pages", coverPdf, bodyPdf, "--", outputPdf], {
-      stdio: ["inherit", "inherit", "inherit"],
-    });
-    if ((await merge.exited) !== 0) {
-      // Left in place: the two halves are still printable on their own.
-      throw new Error(`qpdf failed — ${coverPdf} and ${bodyPdf} unmerged`);
+  const parts = [];
+  for (const [key, mode, name] of faces) {
+    if (key && !front[key]) {
+      continue;
     }
+    const pdf = join(outputDir, `.${name}.pdf`);
+    await runPaged(projectDir, await buildHtml(projectDir, variant, { cover: mode }), pdf);
+    parts.push(pdf);
+  }
 
-    await unlink(coverPdf);
-    await unlink(bodyPdf);
+  const merge = Bun.spawn(["qpdf", "--empty", "--pages", ...parts, "--", outputPdf], {
+    stdio: ["inherit", "inherit", "inherit"],
+  });
+  if ((await merge.exited) !== 0) {
+    // Left in place: each part is still printable on its own.
+    throw new Error(`qpdf failed — ${parts.join(", ")} unmerged`);
+  }
+
+  for (const p of parts) {
+    await unlink(p);
   }
 
   console.log(`wrote ${outputPdf}`);

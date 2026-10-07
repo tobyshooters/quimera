@@ -1,11 +1,13 @@
 ---
 title: Direct Supervision
-author: Ghost of Kinski
+author: Kash Kinski
 isbn: XXX
+cover: cover/outer.jpg
+cover-inner: cover/inner.jpg
 ---
 
 :::cover
-## Ghost of Kinski
+## Kash Kinski
 # Direct Supervision
 :::
 
@@ -18,11 +20,15 @@ isbn: XXX
 Not Nothing.\
 A small press for unfashionable work.
 
-Ghost of Kinski, Direct of Supervision.\
+Kash Kinski, Direct Supervision.\
 ISBN. 978-0-00-000000-0
 
 :::
 
 ::::
+
+:::fullpage
+![](./map-drawing.png)
+:::
 
 !include draft.md

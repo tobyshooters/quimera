@@ -23,17 +23,15 @@
 @page :left {
   margin-left: 2.5cm;
   margin-right: 2.5cm;
-  @bottom-left {
-    content: none;
-  }
+  @bottom-left { content: none; }
+  @top-left { content: none; }
 }
 
 @page :right {
   margin-left: 2.5cm;
   margin-right: 2.5cm;
-  @bottom-right {
-    content: none;
-  }
+  @bottom-right { content: none; }
+  @top-right { content: none; }
 }
 
 /* `data-para` and `data-num` are stamped at compile time by paranum.ts. */

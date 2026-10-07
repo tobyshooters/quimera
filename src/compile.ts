@@ -537,24 +537,25 @@ function isReflowable(config) {
   return Boolean(config.web || config.epub);
 }
 
-// `cover` places the wraparound cover named by book.md's `cover:` front
-// matter — "include" in front of the book, "omit" nowhere, "only" alone on
-// its own sheet, which the PDF export needs because Chromium gives a
-// document exactly one paper size.
+// `cover` places the two faces of the wraparound cover sheet named by
+// book.md's `cover:` and `cover-inner:` front matter — "include" wraps them
+// around the book, "omit" drops both, "outer"/"inner" render one alone.
+// The PDF export needs those: Chromium gives a document one paper size.
 export async function buildHtml(projectDir, variant, { cover = "include" } = {}) {
   const config = await variantConfig(projectDir, variant);
   const front = await bookMeta(projectDir);
-  const only = cover === "only";
+  const only = cover === "outer" || cover === "inner";
 
   const { body: text, styleSheet } = only
     ? { body: "", styleSheet: config.coverCss || "cover.css" }
     : await renderBody(projectDir, variant);
 
-  // Empty: the image arrives as --cover, so book.md carries no markup and
-  // there's no asset path to rewrite.
-  const div = '<div class="cover-image"></div>';
-  const wanted = only || (front.cover && cover === "include");
-  const body = wanted ? div + text : text;
+  // Empty: the images arrive as --cover / --cover-inner, so book.md carries
+  // no markup and there's no asset path to rewrite.
+  const outer = front.cover ? '<div class="cover-image"></div>' : "";
+  const inner = front["cover-inner"] ? '<div class="cover-image cover-inner"></div>' : "";
+
+  const body = { include: outer + text + inner, omit: text, outer, inner }[cover];
 
   const reflow = !only && isReflowable(config);
 
@@ -572,7 +573,7 @@ export async function buildHtml(projectDir, variant, { cover = "include" } = {})
     .map(([k, v]) => {
       const val = v.replace(/["\\]/g, "\\$&");
       // A path is only usable as a url(), and url(var(--x)) isn't a thing.
-      return `      --${k}: ${k === "cover" ? `url("${val}")` : `"${val}"`};`;
+      return `      --${k}: ${k.startsWith("cover") ? `url("${val}")` : `"${val}"`};`;
     })
     .join("\n");
   const metaStyle = meta ? `<style>\n    :root {\n${meta}\n    }\n    </style>` : "";

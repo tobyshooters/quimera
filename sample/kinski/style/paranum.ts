@@ -13,7 +13,7 @@
 // span around the first word — carries the digits and travels with them.
 
 // Paragraphs inside these are apparatus, not argument.
-const SKIP_CLASS = ["cover", "frontmatter", "bibliography"];
+const SKIP_CLASS = ["cover", "frontmatter", "bibliography", "fullpage"];
 const SKIP_TAG = ["figure", "blockquote"];
 
 export function paragraphNumbers() {
