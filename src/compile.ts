@@ -291,6 +291,30 @@ function directivesToHast(registry) {
       data.hName = entry.tag;
       data.hProperties = { ...node.attributes, className };
     });
+
+    // Restoring prose above puts it back as its own node, leaving the
+    // sentence split in three around what was never a directive. Anything
+    // later that reads text — citations, most notably — then cannot see
+    // across the seam: `[@PAULS, min. 42:00]` is a citation only if the
+    // bracket is whole. So stitch neighbouring text back together.
+    visit(tree, (node) => {
+      if (!node.children) {
+        return;
+      }
+      const merged = [];
+      for (const child of node.children) {
+        const prev = merged[merged.length - 1];
+        if (child.type === "text" && prev?.type === "text") {
+          prev.value += child.value;
+          if (prev.position && child.position) {
+            prev.position.end = child.position.end;
+          }
+        } else {
+          merged.push(child);
+        }
+      }
+      node.children = merged;
+    });
   };
 }
 
@@ -537,6 +561,9 @@ function isReflowable(config) {
   return Boolean(config.web || config.epub);
 }
 
+const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;" };
+const escapeHtml = (s: string) => s.replace(/[&<>]/g, (c) => ESCAPES[c]);
+
 // `cover` places the two faces of the wraparound cover sheet named by
 // book.md's `cover:` and `cover-inner:` front matter — "include" wraps them
 // around the book, "omit" drops both, "outer"/"inner" render one alone.
@@ -581,7 +608,9 @@ export async function buildHtml(projectDir, variant, { cover = "include" } = {})
   let html = shell
     .replace("<!--BODY-->", body)
     .replace("<!--META-->", metaStyle)
-    .replace('href="style.css"', link);
+    .replace('href="style.css"', link)
+    // The book's own title, for the tab and the bookmark.
+    .replace("<title>Book</title>", `<title>${escapeHtml(front.title || "Book")}</title>`);
 
   // A reflowable variant (web/epub) renders a plain, flowing page — no
   // paged.js pagination. Everything else (including pretext) stays orthogonal.

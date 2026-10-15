@@ -17,18 +17,24 @@ cover-inner: cover/inner.jpg
 ::::vert
 :::frontmatter
 
-Not Nothing.\
+*Not Nothing*.\
 A small press for unfashionable work.
 
-Kash Kinski, Direct Supervision.\
+Online, and elsewhere.\
+notnothing.ooo
+
+Kash Kinski,\
+Direct Supervision.\
 ISBN. 978-0-00-000000-0
+
+Printed by Nocaut in Mexico City.
 
 :::
 
 ::::
 
 :::fullpage
-![](./map-drawing.png)
+![](./map.png)
 :::
 
 !include draft.md

@@ -61,7 +61,7 @@ async function exportPdf(projectDir, variant) {
   if (!front.cover && !front["cover-inner"]) {
     await runPaged(projectDir, await buildHtml(projectDir, variant), outputPdf);
     console.log(`wrote ${outputPdf}`);
-    return;
+    return outputPdf;
   }
 
   // In page order: [front-matter key, cover mode, temp name]. A null key
@@ -95,6 +95,7 @@ async function exportPdf(projectDir, variant) {
   }
 
   console.log(`wrote ${outputPdf}`);
+  return outputPdf;
 }
 
 // A `web` variant is a static site, not a PDF: write index.html and copy the
@@ -125,11 +126,15 @@ async function exportWeb(projectDir, variant) {
   for (const dir of [STYLE_DIR, "content", "images", "cover"]) {
     const src = join(projectDir, dir);
     if (existsSync(src)) {
-      await cp(src, join(outputDir, dir), { recursive: true, filter: keep });
+      // dereference: a project may symlink a source dir (content/, images/)
+      // at wherever it really lives. Copied as a symlink, the relative target
+      // no longer resolves from output/, and the exported site is broken.
+      await cp(src, join(outputDir, dir), { recursive: true, filter: keep, dereference: true });
     }
   }
 
   console.log(`wrote ${join(outputDir, "index.html")}`);
+  return outputDir;
 }
 
 async function exportEpub(projectDir, variant) {
@@ -139,6 +144,7 @@ async function exportEpub(projectDir, variant) {
   const out = join(outputDir, variant ? `${base}-${variant}.epub` : `${base}.epub`);
   await buildEpub(projectDir, variant, out);
   console.log(`wrote ${out}`);
+  return out;
 }
 
 async function init(projectDir) {
@@ -148,6 +154,20 @@ async function init(projectDir) {
   }
   await cp(SAMPLE_DIR, projectDir, { recursive: true });
   console.log(`initialized ${projectDir} from ${SAMPLE_DIR}`);
+}
+
+/*
+A project's own finishing step, named `postExport` in its config. Exports are
+deliberately dumb — copy what the variant needs and stop — but a project may
+have something to do afterwards that only it knows about: trimming assets it
+does not ship, uploading, signing. It is awaited, and gets the path that was
+written.
+*/
+async function postExport(projectDir, variant, output) {
+  const { postExport: hook } = await variantConfig(projectDir, variant);
+  if (typeof hook === "function") {
+    await hook({ projectDir, variant, output });
+  }
 }
 
 function usage() {
@@ -170,13 +190,15 @@ switch (cmd) {
     break;
   case "export": {
     const config = await variantConfig(abs, variant);
+    let output;
     if (config.epub) {
-      await exportEpub(abs, variant);
+      output = await exportEpub(abs, variant);
     } else if (config.web) {
-      await exportWeb(abs, variant);
+      output = await exportWeb(abs, variant);
     } else {
-      await exportPdf(abs, variant);
+      output = await exportPdf(abs, variant);
     }
+    await postExport(abs, variant, output);
     break;
   }
   case "init":
