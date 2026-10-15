@@ -1,4 +1,4 @@
-import { buildHtml, variantNames } from "./compile.ts";
+import { buildHtml, variantNames, variantConfig } from "./compile.ts";
 import { watch } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -217,9 +217,15 @@ export async function preview(projectDir, initialVariant) {
       if (url.pathname === "/" || url.pathname === "/index.html") {
         const variant = url.searchParams.get("variant") || initialVariant || undefined;
         const html = await buildHtml(projectDir, variant);
-        const names = await variantNames(projectDir);
-        const current = variant && names.includes(variant) ? variant : names[0];
-        const chrome = rulerChrome() + variantPicker(names, current) + RELOAD_SCRIPT;
+        const config = await variantConfig(projectDir, variant);
+        // A web variant is a plain page, not a print proof: no rulers, no
+        // picker, nothing but the document and the live-reload hook.
+        let chrome = RELOAD_SCRIPT;
+        if (!config.web) {
+          const names = await variantNames(projectDir);
+          const current = variant && names.includes(variant) ? variant : names[0];
+          chrome = rulerChrome() + variantPicker(names, current) + RELOAD_SCRIPT;
+        }
         const injected = html.replace("</body>", chrome + "</body>");
         return new Response(injected, {
           headers: { "Content-Type": "text/html; charset=utf-8" },

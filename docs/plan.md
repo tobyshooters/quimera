@@ -235,7 +235,9 @@ identical; `web` only (a) omits the paged.js polyfill and the print-only
 preview chrome / outer-margin handler, and (b) makes `export` write a
 static `output/<variant>/index.html` plus the asset dirs it references
 (`style/`, `content/`, `images/`) rather than running `pagedjs-cli`.
-Pretext stays orthogonal: with `justification` on, web output
+Preview treats a `web` variant the same way: it serves the page bare —
+no rulers, no variant picker, only the live-reload hook. Pretext stays
+orthogonal: with `justification` on, web output
 still gets optimal justification, but measures each paragraph's live
 column width at runtime (there's no `@page` to read, and the DOM is
 already laid out) instead of using the baked-in `COL_WIDTH`. See
