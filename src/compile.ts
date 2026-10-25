@@ -486,7 +486,8 @@ export async function bookBaseName(projectDir) {
 // the project dir. Non-include lines pass through, so book.md can also hold
 // top-level prose or a title. Includes are not recursive. When there's no
 // book.md, fall back to concatenating content/*.md sorted by filename.
-async function loadContent(projectDir) {
+async function loadContent(projectDir, preprocessInclude?: (src: string) => string) {
+  const pre = preprocessInclude ?? ((s) => s);
   const bookPath = join(projectDir, "book.md");
   if (existsSync(bookPath)) {
     const { body: master } = parseFrontMatter(await readFile(bookPath, "utf8"));
@@ -496,7 +497,7 @@ async function loadContent(projectDir) {
       if (m) {
         const path = isAbsolute(m[1]) ? m[1] : join(projectDir, m[1]);
         const raw = await readFile(path, "utf8");
-        out.push(rewriteAssetPaths(raw, dirname(path), projectDir));
+        out.push(rewriteAssetPaths(pre(raw), dirname(path), projectDir));
         out.push("");
       } else {
         out.push(line);
@@ -527,7 +528,7 @@ export async function renderBody(projectDir, variant, { xhtml = false } = {}) {
   const directives = config.directives || {};
   const formatCitation = config.formatCitation || defaultFormatCitation;
 
-  const md = await loadContent(projectDir);
+  const md = await loadContent(projectDir, config.preprocessInclude);
 
   let proc = unified()
     .use(remarkParse)
